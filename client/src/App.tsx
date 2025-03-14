@@ -8,16 +8,22 @@ import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import ApartmentDirectory from "@/pages/apartment-directory";
 import Amenities from "@/pages/amenities";
+import Users from "@/pages/users";
+import Bookings from "@/pages/bookings";
 import { ProtectedRoute } from "./lib/protected-route";
 import Navigation from "@/components/navigation";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/">
+        <ProtectedRoute path="/" component={Dashboard} />
+      </Route>
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/apartments" component={ApartmentDirectory} />
       <ProtectedRoute path="/amenities" component={Amenities} />
+      <ProtectedRoute path="/users" component={Users} isAdminOnly />
+      <ProtectedRoute path="/bookings" component={Bookings} isAdminOnly />
       <Route component={NotFound} />
     </Switch>
   );

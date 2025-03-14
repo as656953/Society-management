@@ -7,12 +7,10 @@ import {
   CalendarDays,
   LogOut,
   Menu,
+  Users,
+  Calendar,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
@@ -53,6 +51,22 @@ export default function Navigation() {
           Amenities
         </Button>
       </Link>
+      {user.isAdmin && (
+        <>
+          <Link href="/users">
+            <Button variant="ghost" className="w-full justify-start">
+              <Users className="mr-2 h-4 w-4" />
+              Users
+            </Button>
+          </Link>
+          <Link href="/bookings">
+            <Button variant="ghost" className="w-full justify-start">
+              <Calendar className="mr-2 h-4 w-4" />
+              Manage Bookings
+            </Button>
+          </Link>
+        </>
+      )}
       <Button
         variant="ghost"
         size="sm"

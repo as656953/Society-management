@@ -1,4 +1,12 @@
-import { pgTable, text, serial, integer, boolean, timestamp, numeric } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  timestamp,
+  numeric,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -23,7 +31,7 @@ export const apartments = pgTable("apartments", {
   floor: integer("floor").notNull(),
   type: text("type").notNull(), // "2BHK" or "3BHK"
   ownerName: text("owner_name"),
-  status: text("status").notNull().default('OCCUPIED'), // "AVAILABLE_RENT", "AVAILABLE_SALE", "OCCUPIED"
+  status: text("status").notNull().default("OCCUPIED"), // "AVAILABLE_RENT", "AVAILABLE_SALE", "OCCUPIED"
   monthlyRent: numeric("monthly_rent"),
   salePrice: numeric("sale_price"),
   contactNumber: text("contact_number"),
@@ -44,11 +52,33 @@ export const bookings = pgTable("bookings", {
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   status: text("status").notNull(), // "PENDING", "APPROVED", "REJECTED"
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export const updateUserSchema = z.object({
+  isAdmin: z.boolean(),
+});
 export const insertApartmentSchema = createInsertSchema(apartments);
-export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true });
+export const updateApartmentSchema = z.object({
+  ownerName: z.string().nullable(),
+  status: z.enum(["AVAILABLE_RENT", "AVAILABLE_SALE", "OCCUPIED"]),
+  monthlyRent: z
+    .string()
+    .nullable()
+    .transform((val) => (val ? parseFloat(val) : null)),
+  salePrice: z
+    .string()
+    .nullable()
+    .transform((val) => (val ? parseFloat(val) : null)),
+  contactNumber: z.string().nullable(),
+});
+export const insertBookingSchema = createInsertSchema(bookings)
+  .omit({ id: true })
+  .extend({
+    startTime: z.coerce.date(),
+    endTime: z.coerce.date(),
+  });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;

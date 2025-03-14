@@ -18,8 +18,12 @@ import { Loader2, Users, Home, Dumbbell } from "lucide-react";
 
 export default function Amenities() {
   const { toast } = useToast();
-  const [selectedStartDate, setSelectedStartDate] = useState<Date | undefined>(new Date());
-  const [selectedEndDate, setSelectedEndDate] = useState<Date | undefined>(addDays(new Date(), 1));
+  const [selectedStartDate, setSelectedStartDate] = useState<Date | undefined>(
+    new Date()
+  );
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | undefined>(
+    addDays(new Date(), 1)
+  );
   const [selectedAmenity, setSelectedAmenity] = useState<Amenity | null>(null);
 
   const { data: amenities, isLoading } = useQuery<Amenity[]>({
@@ -34,21 +38,25 @@ export default function Amenities() {
         throw new Error("End date must be after start date");
       }
 
-      // Create new Date objects with the correct time
+      // Create new Date objects with the correct time and ISO string format
       const startTime = new Date(selectedStartDate);
-      startTime.setHours(9, 0, 0); // 9 AM
+      startTime.setHours(9, 0, 0, 0); // 9 AM
       const endTime = new Date(selectedEndDate);
-      endTime.setHours(21, 0, 0); // 9 PM
+      endTime.setHours(21, 0, 0, 0); // 9 PM
 
       // Create booking data with proper validation
       const bookingData = {
         amenityId: selectedAmenity.id,
-        startTime: startTime,  // Send as Date object instead of string
-        endTime: endTime,      // Send as Date object instead of string
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
         status: "PENDING",
       };
 
       const res = await apiRequest("POST", "/api/bookings", bookingData);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to create booking");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -107,11 +115,16 @@ export default function Amenities() {
                   <span className="text-sm text-muted-foreground">
                     Max Capacity
                   </span>
-                  <span className="font-medium">{amenity.maxCapacity} people</span>
+                  <span className="font-medium">
+                    {amenity.maxCapacity} people
+                  </span>
                 </div>
-                <Dialog open={selectedAmenity?.id === amenity.id} onOpenChange={(open) => {
-                  if (!open) setSelectedAmenity(null);
-                }}>
+                <Dialog
+                  open={selectedAmenity?.id === amenity.id}
+                  onOpenChange={(open) => {
+                    if (!open) setSelectedAmenity(null);
+                  }}
+                >
                   <DialogTrigger asChild>
                     <Button
                       onClick={() => setSelectedAmenity(amenity)}
@@ -120,7 +133,7 @@ export default function Amenities() {
                       Book Now
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Book {amenity.name}</DialogTitle>
                       <div className="text-sm text-muted-foreground pt-2">
@@ -130,7 +143,7 @@ export default function Amenities() {
                     <div className="py-4">
                       <div className="mb-4">
                         <h4 className="text-sm font-medium mb-2">Start Date</h4>
-                        <div className="max-w-full overflow-x-auto"> {/* Added to prevent overflow */}
+                        <div className="max-w-[calc(100vw-4rem)] sm:max-w-none overflow-x-auto">
                           <Calendar
                             mode="single"
                             selected={selectedStartDate}
@@ -142,7 +155,7 @@ export default function Amenities() {
                       </div>
                       <div className="mb-4">
                         <h4 className="text-sm font-medium mb-2">End Date</h4>
-                        <div className="max-w-full overflow-x-auto"> {/* Added to prevent overflow */}
+                        <div className="max-w-[calc(100vw-4rem)] sm:max-w-none overflow-x-auto">
                           <Calendar
                             mode="single"
                             selected={selectedEndDate}
@@ -157,16 +170,23 @@ export default function Amenities() {
                       <div className="space-y-1 text-sm text-muted-foreground">
                         <div>Selected period:</div>
                         <div>
-                          From: {selectedStartDate && format(selectedStartDate, "PPP")}
+                          From:{" "}
+                          {selectedStartDate &&
+                            format(selectedStartDate, "PPP")}
                         </div>
                         <div>
-                          To: {selectedEndDate && format(selectedEndDate, "PPP")}
+                          To:{" "}
+                          {selectedEndDate && format(selectedEndDate, "PPP")}
                         </div>
                       </div>
                       <Button
                         className="w-full mt-4"
                         onClick={() => bookingMutation.mutate()}
-                        disabled={!selectedStartDate || !selectedEndDate || bookingMutation.isPending}
+                        disabled={
+                          !selectedStartDate ||
+                          !selectedEndDate ||
+                          bookingMutation.isPending
+                        }
                       >
                         {bookingMutation.isPending ? (
                           <>

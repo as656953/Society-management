@@ -46,17 +46,20 @@ export default function Dashboard() {
             ) : userApartment ? (
               <div className="space-y-2">
                 <p>
-                  <span className="font-medium">Tower:</span> {userApartment.towerId}
+                  <span className="font-medium">Tower:</span>{" "}
+                  {userApartment.towerId}
                 </p>
                 <p>
-                  <span className="font-medium">Floor:</span> {userApartment.floor}
+                  <span className="font-medium">Floor:</span>{" "}
+                  {userApartment.floor}
                 </p>
                 <p>
                   <span className="font-medium">Apartment:</span>{" "}
                   {userApartment.number}
                 </p>
                 <p>
-                  <span className="font-medium">Type:</span> {userApartment.type}
+                  <span className="font-medium">Type:</span>{" "}
+                  {userApartment.type}
                 </p>
               </div>
             ) : (
