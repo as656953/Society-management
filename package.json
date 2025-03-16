@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "dotenv tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-    "start": "NODE_ENV=production node dist/index.js",
+    "start": "node dist/index.js",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "test:db": "tsx scripts/test-connection.ts",
+    "db:push:direct": "tsx scripts/push-schema.ts",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -49,6 +52,7 @@
     "cmdk": "^1.0.0",
     "connect-pg-simple": "^10.0.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.4.7",
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
     "embla-carousel-react": "^8.3.0",
@@ -82,10 +86,10 @@
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
     "@types/connect-pg-simple": "^7.0.3",
-    "@types/express": "4.17.21",
-    "@types/express-session": "^1.18.0",
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.18.1",
     "@types/node": "20.16.11",
-    "@types/passport": "^1.0.16",
+    "@types/passport": "^1.0.17",
     "@types/passport-local": "^1.0.38",
     "@types/pg": "^8.11.11",
     "@types/react": "^18.3.11",

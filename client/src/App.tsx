@@ -10,6 +10,7 @@ import ApartmentDirectory from "@/pages/apartment-directory";
 import Amenities from "@/pages/amenities";
 import Users from "@/pages/users";
 import Bookings from "@/pages/bookings";
+import MyBookings from "@/pages/my-bookings";
 import { ProtectedRoute } from "./lib/protected-route";
 import Navigation from "@/components/navigation";
 
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/apartments" component={ApartmentDirectory} />
       <ProtectedRoute path="/amenities" component={Amenities} />
+      <ProtectedRoute path="/my-bookings" component={MyBookings} />
       <ProtectedRoute path="/users" component={Users} isAdminOnly />
       <ProtectedRoute path="/bookings" component={Bookings} isAdminOnly />
       <Route component={NotFound} />

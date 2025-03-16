@@ -51,6 +51,12 @@ export default function Navigation() {
           Amenities
         </Button>
       </Link>
+      <Link href="/my-bookings">
+        <Button variant="ghost" size="sm">
+          <Calendar className="mr-2 h-4 w-4" />
+          My Bookings
+        </Button>
+      </Link>
       {user.isAdmin && (
         <>
           <Link href="/users">

@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { Booking, Apartment } from "@shared/schema";
+import { Booking, Apartment, Amenity } from "@shared/schema";
 import { Link } from "wouter";
 
 export default function Dashboard() {
@@ -16,6 +16,10 @@ export default function Dashboard() {
     queryKey: ["/api/bookings/user"],
   });
 
+  const { data: amenities } = useQuery<Amenity[]>({
+    queryKey: ["/api/amenities"],
+  });
+
   const { data: apartments, isLoading: isLoadingApartments } = useQuery<
     Apartment[]
   >({
@@ -23,6 +27,12 @@ export default function Dashboard() {
   });
 
   const userApartment = apartments?.find((a) => a.id === user?.apartmentId);
+
+  const getAmenityName = (amenityId: number) => {
+    return (
+      amenities?.find((a) => a.id === amenityId)?.name || "Unknown Amenity"
+    );
+  };
 
   return (
     <div className="container p-6">
@@ -106,33 +116,40 @@ export default function Dashboard() {
             ) : bookings && bookings.length > 0 ? (
               <ScrollArea className="h-[300px]">
                 <div className="space-y-4">
-                  {bookings.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          Amenity ID: {booking.amenityId}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(booking.startTime), "PPP p")} -{" "}
-                          {format(new Date(booking.endTime), "p")}
-                        </p>
-                      </div>
+                  {bookings
+                    .filter((booking) => booking.status === "PENDING")
+                    .map((booking) => (
                       <div
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          booking.status === "APPROVED"
-                            ? "bg-green-100 text-green-800"
-                            : booking.status === "PENDING"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
+                        key={booking.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
                       >
-                        {booking.status}
+                        <div>
+                          <p className="font-medium">
+                            {getAmenityName(booking.amenityId)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(booking.startTime), "PPP")}{" "}
+                            {format(new Date(booking.startTime), "p")} -
+                            {new Date(booking.startTime).toDateString() !==
+                            new Date(booking.endTime).toDateString()
+                              ? ` ${format(new Date(booking.endTime), "PPP")} `
+                              : " "}
+                            {format(new Date(booking.endTime), "p")}
+                          </p>
+                        </div>
+                        <div
+                          className={`px-3 py-1 rounded-full text-sm ${
+                            booking.status === "APPROVED"
+                              ? "bg-green-100 text-green-800"
+                              : booking.status === "PENDING"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {booking.status}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </ScrollArea>
             ) : (

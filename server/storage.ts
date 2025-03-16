@@ -104,7 +104,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBookingsByUser(userId: number): Promise<Booking[]> {
-    return await db.select().from(bookings).where(eq(bookings.userId, userId));
+    return await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.userId, userId))
+      .orderBy(bookings.startTime);
   }
 
   async getBookingsByAmenity(amenityId: number): Promise<Booking[]> {
