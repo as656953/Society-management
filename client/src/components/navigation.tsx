@@ -9,6 +9,7 @@ import {
   Menu,
   Users,
   Calendar,
+  Settings,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +64,12 @@ export default function Navigation() {
             <Button variant="ghost" className="w-full justify-start">
               <Users className="mr-2 h-4 w-4" />
               Users
+            </Button>
+          </Link>
+          <Link href="/manage-properties">
+            <Button variant="ghost" className="w-full justify-start">
+              <Settings className="mr-2 h-4 w-4" />
+              Manage Properties
             </Button>
           </Link>
           <Link href="/bookings">

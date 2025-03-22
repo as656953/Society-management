@@ -48,7 +48,7 @@ function formatCurrency(amount: string | number | null): string {
 export default function ApartmentDirectory() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedTower, setSelectedTower] = useState<string>("1");
+  const [selectedTower, setSelectedTower] = useState<string>("");
   const [editingApartment, setEditingApartment] = useState<Apartment | null>(
     null
   );
@@ -59,10 +59,17 @@ export default function ApartmentDirectory() {
     salePrice: "",
     contactNumber: "",
   });
-  const towerLetter = getTowerLetter(parseInt(selectedTower));
+
+  // Add towers query
+  const { data: towers, isLoading: isLoadingTowers } = useQuery<
+    { id: number; name: string }[]
+  >({
+    queryKey: ["/api/towers"],
+  });
 
   const { data: apartments, isLoading } = useQuery<Apartment[]>({
     queryKey: [`/api/towers/${selectedTower}/apartments`],
+    enabled: !!selectedTower,
   });
 
   const updateApartmentMutation = useMutation({
@@ -123,22 +130,34 @@ export default function ApartmentDirectory() {
         <Select value={selectedTower} onValueChange={setSelectedTower}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select Tower">
-              {selectedTower ? `Tower ${towerLetter}` : "Select Tower"}
+              {selectedTower && towers
+                ? towers.find((t) => t.id.toString() === selectedTower)?.name
+                : "Select Tower"}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {Array.from({ length: 16 }, (_, i) => i + 1).map((tower) => (
-              <SelectItem key={tower} value={tower.toString()}>
-                Tower {getTowerLetter(tower)}
-              </SelectItem>
-            ))}
+            {isLoadingTowers ? (
+              <div className="flex items-center justify-center p-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : (
+              towers?.map((tower) => (
+                <SelectItem key={tower.id} value={tower.id.toString()}>
+                  {tower.name}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      {isLoading || !selectedTower ? (
+        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+          {!selectedTower ? (
+            <p>Select a tower to view apartments</p>
+          ) : (
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -151,9 +170,10 @@ export default function ApartmentDirectory() {
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-muted-foreground" />
-                    <span>{`${towerLetter}-${
-                      apartment.floor
-                    }${apartment.number.slice(-2)}`}</span>
+                    <span>
+                      {towers?.find((t) => t.id === apartment.towerId)?.name} -{" "}
+                      {apartment.number}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div
@@ -191,9 +211,10 @@ export default function ApartmentDirectory() {
                           <DialogHeader>
                             <DialogTitle>
                               Edit Apartment{" "}
-                              {`${towerLetter}-${
-                                apartment.floor
-                              }${apartment.number.slice(-2)}`}
+                              {`${
+                                towers?.find((t) => t.id === apartment.towerId)
+                                  ?.name
+                              } - ${apartment.number}`}
                             </DialogTitle>
                           </DialogHeader>
                           <form onSubmit={handleUpdate} className="space-y-4">

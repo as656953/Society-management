@@ -2,11 +2,37 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupScheduledTasks } from "./tasks";
-
+import towersRouter from "./routes/towers";
+import apartmentsRouter from "./routes/apartments";
+import session from "express-session";
+import { storage } from "./storage";
+import { setupAuth } from "./auth";
 
 const app = express();
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session middleware setup
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "your-secret-key", // In production, use an environment variable
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true,
+      path: "/",
+    },
+    store: storage.sessionStore,
+    name: "ssync.sid", // Custom name to avoid conflicts
+  })
+);
+
+// Setup authentication after session middleware
+setupAuth(app);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,6 +63,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+app.use("/api/towers", towersRouter);
+app.use("/api/apartments", apartmentsRouter);
 
 (async () => {
   const server = await registerRoutes(app);

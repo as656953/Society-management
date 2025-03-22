@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Check, X, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Clock, User as UserIcon } from "lucide-react";
 
 export default function Bookings() {
   const { toast } = useToast();
@@ -78,59 +80,87 @@ export default function Bookings() {
 
   return (
     <div className="container py-8">
-      <h1 className="text-3xl font-bold mb-8">Manage Bookings</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">Manage Bookings</h1>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="text-sm">
+            Total: {visibleBookings?.length || 0}
+          </Badge>
+          <Badge variant="secondary" className="text-sm">
+            Pending:{" "}
+            {visibleBookings?.filter((b) => b.status === "PENDING").length || 0}
+          </Badge>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="shadow-lg">
+        <CardHeader className="border-b bg-muted/50">
           <CardTitle>All Bookings</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {isLoadingBookings ? (
             <div className="space-y-4">
-              <div className="h-12 w-full animate-pulse bg-muted rounded" />
-              <div className="h-12 w-full animate-pulse bg-muted rounded" />
-              <div className="h-12 w-full animate-pulse bg-muted rounded" />
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-24 w-full animate-pulse bg-muted rounded-lg"
+                />
+              ))}
             </div>
           ) : visibleBookings && visibleBookings.length > 0 ? (
-            <ScrollArea className="h-[600px]">
+            <ScrollArea className="h-[600px] pr-4">
               <div className="space-y-4">
                 {visibleBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className="group flex items-center justify-between p-6 border rounded-xl bg-card hover:shadow-md transition-all duration-200"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">
+                    <div className="space-y-3 flex-1">
+                      <div className="flex items-center gap-4">
+                        <h3 className="font-semibold text-lg">
                           {getAmenityName(booking.amenityId)}
-                        </p>
-                        <span className="text-sm text-muted-foreground">
-                          by {getUserName(booking.userId)}
-                        </span>
+                        </h3>
+                        <Badge
+                          variant={
+                            booking.status === "APPROVED"
+                              ? "default"
+                              : booking.status === "PENDING"
+                              ? "secondary"
+                              : "destructive"
+                          }
+                          className="uppercase text-xs"
+                        >
+                          {booking.status}
+                        </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(booking.startTime), "PPP p")} -{" "}
-                        {format(new Date(booking.endTime), "p")}
-                      </p>
-                      <div
-                        className={`inline-block px-2 py-1 rounded-full text-sm ${
-                          booking.status === "APPROVED"
-                            ? "bg-green-100 text-green-800"
-                            : booking.status === "PENDING"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {booking.status}
+
+                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="h-4 w-4" />
+                          <span>{getUserName(booking.userId)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>
+                            {format(new Date(booking.startTime), "PPP")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          <span>
+                            {format(new Date(booking.startTime), "p")} -{" "}
+                            {format(new Date(booking.endTime), "p")}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     {booking.status === "PENDING" && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-green-600 hover:text-green-700"
+                          className="bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700"
                           onClick={() =>
                             updateStatusMutation.mutate({
                               bookingId: booking.id,
@@ -142,13 +172,16 @@ export default function Bookings() {
                           {updateStatusMutation.isPending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Check className="h-4 w-4" />
+                            <>
+                              <Check className="h-4 w-4 mr-2" />
+                              Approve
+                            </>
                           )}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-red-600 hover:text-red-700"
+                          className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
                           onClick={() =>
                             updateStatusMutation.mutate({
                               bookingId: booking.id,
@@ -160,7 +193,10 @@ export default function Bookings() {
                           {updateStatusMutation.isPending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <X className="h-4 w-4" />
+                            <>
+                              <X className="h-4 w-4 mr-2" />
+                              Reject
+                            </>
                           )}
                         </Button>
                       </div>
@@ -170,8 +206,11 @@ export default function Bookings() {
               </div>
             </ScrollArea>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No bookings found.
+            <div className="text-center py-12 text-muted-foreground">
+              <div className="mb-4">No bookings found</div>
+              <p className="text-sm">
+                When new bookings are made, they will appear here.
+              </p>
             </div>
           )}
         </CardContent>

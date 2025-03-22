@@ -1,4 +1,3 @@
-import React from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import Amenities from "@/pages/amenities";
 import Users from "@/pages/users";
 import Bookings from "@/pages/bookings";
 import MyBookings from "@/pages/my-bookings";
+import ManageProperties from "@/pages/manage-properties";
 import { ProtectedRoute } from "./lib/protected-route";
 import Navigation from "@/components/navigation";
 
@@ -26,6 +26,11 @@ function Router() {
       <ProtectedRoute path="/amenities" component={Amenities} />
       <ProtectedRoute path="/my-bookings" component={MyBookings} />
       <ProtectedRoute path="/users" component={Users} isAdminOnly />
+      <ProtectedRoute
+        path="/manage-properties"
+        component={ManageProperties}
+        isAdminOnly
+      />
       <ProtectedRoute path="/bookings" component={Bookings} isAdminOnly />
       <Route component={NotFound} />
     </Switch>
@@ -34,11 +39,17 @@ function Router() {
 
 function App() {
   return (
-    <div className="min-h-screen bg-background">
-      <h1 className="text-3xl font-bold text-center py-8">
-        Society Management System
-      </h1>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <div className="min-h-screen bg-background">
+          <Navigation />
+          <main>
+            <Router />
+          </main>
+        </div>
+        <Toaster />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
