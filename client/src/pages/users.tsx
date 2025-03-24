@@ -1,13 +1,28 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "@shared/schema";
-import { Loader2, Shield, ShieldOff } from "lucide-react";
+import { Loader2, Shield, ShieldOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Users() {
   const { toast } = useToast();
+  const { user: currentUser, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
@@ -40,11 +55,50 @@ export default function Users() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("DELETE", `/api/users/${userId}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete user");
+      }
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User deleted successfully",
+      });
+
+      // If user deleted their own account, log them out and redirect to auth page
+      if (userId === currentUser?.id) {
+        // Clear all queries from the cache
+        queryClient.clear();
+        // Logout and redirect
+        logoutMutation.mutate(undefined, {
+          onSuccess: () => {
+            setLocation("/auth");
+          },
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleAdmin = (user: User) => {
     updateUserMutation.mutate({
       userId: user.id,
       isAdmin: !user.isAdmin,
     });
+  };
+
+  const handleDeleteUser = (user: User) => {
+    deleteUserMutation.mutate(user.id);
   };
 
   return (
@@ -62,24 +116,56 @@ export default function Users() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>{user.name}</span>
-                  <Button
-                    variant={user.isAdmin ? "destructive" : "default"}
-                    size="sm"
-                    onClick={() => toggleAdmin(user)}
-                    disabled={updateUserMutation.isPending}
-                  >
-                    {user.isAdmin ? (
-                      <>
-                        <ShieldOff className="mr-2 h-4 w-4" />
-                        Remove Admin
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="mr-2 h-4 w-4" />
-                        Make Admin
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={user.isAdmin ? "destructive" : "default"}
+                      size="sm"
+                      onClick={() => toggleAdmin(user)}
+                      disabled={updateUserMutation.isPending}
+                    >
+                      {user.isAdmin ? (
+                        <>
+                          <ShieldOff className="mr-2 h-4 w-4" />
+                          Remove Admin
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="mr-2 h-4 w-4" />
+                          Make Admin
+                        </>
+                      )}
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={deleteUserMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete User</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {user.id === currentUser?.id
+                              ? "Are you sure you want to delete your account? This action cannot be undone and you will be logged out."
+                              : `Are you sure you want to delete ${user.name}? This action cannot be undone.`}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteUser(user)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>

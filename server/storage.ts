@@ -23,6 +23,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
   getAllUsers(): Promise<User[]>;
+  deleteUser(id: number): Promise<void>;
 
   // Apartments
   getApartments(): Promise<Apartment[]>;
@@ -179,6 +180,10 @@ export class DatabaseStorage implements IStorage {
           isNull(bookings.deletedAt)
         )
       );
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 }
 

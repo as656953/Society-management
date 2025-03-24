@@ -40,6 +40,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete user (admin only)
+  app.delete("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.user?.isAdmin) return res.sendStatus(403);
+
+    try {
+      const userId = parseInt(req.params.id);
+
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // If user is deleting their own account, handle session cleanup
+      if (userId === req.user.id) {
+        // Delete the user first
+        await storage.deleteUser(userId);
+
+        // Logout the user
+        req.logout((err) => {
+          if (err) {
+            console.error("Error logging out user:", err);
+          }
+
+          // Destroy the session after logout
+          req.session.destroy((err) => {
+            if (err) {
+              console.error("Error destroying session:", err);
+            }
+            // Send response after session is destroyed
+            res.sendStatus(204);
+          });
+        });
+        return;
+      }
+
+      // For deleting other users, just delete the user
+      await storage.deleteUser(userId);
+      res.sendStatus(204);
+    } catch (error) {
+      res.status(500).send("Internal server error");
+    }
+  });
+
   // Get all apartments
   app.get("/api/apartments", async (_req, res) => {
     const apartments = await storage.getApartments();
