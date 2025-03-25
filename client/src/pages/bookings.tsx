@@ -79,44 +79,46 @@ export default function Bookings() {
   );
 
   return (
-    <div className="container py-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Manage Bookings</h1>
-        <div className="flex gap-2">
-          <Badge variant="outline" className="text-sm">
+    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          Manage Bookings
+        </h1>
+        <div className="flex flex-wrap gap-3">
+          <Badge variant="outline" className="text-sm px-3 py-1">
             Total: {visibleBookings?.length || 0}
           </Badge>
-          <Badge variant="secondary" className="text-sm">
+          <Badge variant="secondary" className="text-sm px-3 py-1">
             Pending:{" "}
             {visibleBookings?.filter((b) => b.status === "PENDING").length || 0}
           </Badge>
         </div>
       </div>
 
-      <Card className="shadow-lg">
-        <CardHeader className="border-b bg-muted/50">
-          <CardTitle>All Bookings</CardTitle>
+      <Card className="shadow-lg border-border/40">
+        <CardHeader className="border-b bg-muted/50 px-6">
+          <CardTitle className="text-xl">All Bookings</CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           {isLoadingBookings ? (
-            <div className="space-y-4">
+            <div className="space-y-4 p-2">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-24 w-full animate-pulse bg-muted rounded-lg"
+                  className="h-28 w-full animate-pulse bg-muted rounded-lg"
                 />
               ))}
             </div>
           ) : visibleBookings && visibleBookings.length > 0 ? (
-            <ScrollArea className="h-[600px] pr-4">
+            <ScrollArea className="h-[calc(100vh-300px)] pr-4">
               <div className="space-y-4">
                 {visibleBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="group flex items-center justify-between p-6 border rounded-xl bg-card hover:shadow-md transition-all duration-200"
+                    className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border rounded-xl bg-card hover:shadow-md transition-all duration-200 gap-4"
                   >
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center gap-4">
+                    <div className="space-y-4 w-full sm:flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                         <h3 className="font-semibold text-lg">
                           {getAmenityName(booking.amenityId)}
                         </h3>
@@ -128,26 +130,44 @@ export default function Bookings() {
                               ? "secondary"
                               : "destructive"
                           }
-                          className="uppercase text-xs"
+                          className="uppercase text-xs w-fit"
                         >
                           {booking.status}
                         </Badge>
                       </div>
 
-                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4" />
-                          <span>{getUserName(booking.userId)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            {format(new Date(booking.startTime), "PPP")}
+                          <UserIcon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">
+                            {getUserName(booking.userId)}
                           </span>
                         </div>
+                        <div className="flex items-start gap-2">
+                          <Calendar className="h-4 w-4 shrink-0 mt-1" />
+                          <div className="space-y-1">
+                            <div>
+                              <span className="text-foreground font-medium">
+                                Start:
+                              </span>{" "}
+                              {format(new Date(booking.startTime), "PPP")} at{" "}
+                              {format(new Date(booking.startTime), "p")}
+                            </div>
+                            <div>
+                              <span className="text-foreground font-medium">
+                                End:
+                              </span>{" "}
+                              {format(new Date(booking.endTime), "PPP")} at{" "}
+                              {format(new Date(booking.endTime), "p")}
+                            </div>
+                          </div>
+                        </div>
                         <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
+                          <Clock className="h-4 w-4 shrink-0" />
                           <span>
+                            <span className="text-foreground font-medium">
+                              Duration:
+                            </span>{" "}
                             {format(new Date(booking.startTime), "p")} -{" "}
                             {format(new Date(booking.endTime), "p")}
                           </span>
@@ -156,11 +176,11 @@ export default function Bookings() {
                     </div>
 
                     {booking.status === "PENDING" && (
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-2 w-full sm:w-auto opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700"
+                          className="flex-1 sm:flex-initial bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-200"
                           onClick={() =>
                             updateStatusMutation.mutate({
                               bookingId: booking.id,
@@ -181,7 +201,7 @@ export default function Bookings() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
+                          className="flex-1 sm:flex-initial bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200"
                           onClick={() =>
                             updateStatusMutation.mutate({
                               bookingId: booking.id,
@@ -207,7 +227,7 @@ export default function Bookings() {
             </ScrollArea>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              <div className="mb-4">No bookings found</div>
+              <div className="mb-2 text-lg font-medium">No bookings found</div>
               <p className="text-sm">
                 When new bookings are made, they will appear here.
               </p>

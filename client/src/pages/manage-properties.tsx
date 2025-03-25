@@ -19,8 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Edit2, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  PlusCircle,
+  Building2,
+  Trash2,
+  Home,
+  IndianRupee,
+  Phone,
+} from "lucide-react";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -176,9 +184,16 @@ export default function ManageProperties() {
   });
 
   return (
-    <div className="container py-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Manage Properties</h1>
+    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Manage Properties
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Manage towers and their apartments in your society.
+          </p>
+        </div>
         <Dialog open={isAddTowerOpen} onOpenChange={setIsAddTowerOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -190,7 +205,7 @@ export default function ManageProperties() {
             <DialogHeader>
               <DialogTitle>Add New Tower</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="towerName">Tower Name</Label>
                 <Input
@@ -203,26 +218,30 @@ export default function ManageProperties() {
               <Button
                 onClick={() => addTowerMutation.mutate(newTowerName)}
                 disabled={!newTowerName || addTowerMutation.isPending}
+                className="w-full"
               >
-                Add Tower
+                {addTowerMutation.isPending ? "Adding..." : "Add Tower"}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Towers</CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <Card className="md:col-span-4 shadow-lg border-border/40">
+          <CardHeader className="border-b bg-muted/50 px-6">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Towers
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             {isLoadingTowers ? (
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-10 bg-muted animate-pulse rounded"
+                    className="h-14 bg-muted animate-pulse rounded-lg"
                   />
                 ))}
               </div>
@@ -231,14 +250,14 @@ export default function ManageProperties() {
                 {towers.map((tower) => (
                   <div
                     key={tower.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 ${
                       selectedTower?.id === tower.id
                         ? "bg-primary/10 border-primary"
                         : "hover:bg-muted/50"
                     }`}
                   >
                     <button
-                      className="flex-1 text-left"
+                      className="flex-1 text-left font-medium"
                       onClick={() => setSelectedTower(tower)}
                     >
                       {tower.name}
@@ -246,7 +265,7 @@ export default function ManageProperties() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => deleteTowerMutation.mutate(tower.id)}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -256,225 +275,271 @@ export default function ManageProperties() {
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No towers found
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium mb-1">No towers found</p>
+                <p className="text-sm">Add a tower to get started.</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="col-span-8">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>
-              {selectedTower
-                ? `${selectedTower.name} Apartments`
-                : "Select a tower to view apartments"}
-            </CardTitle>
-            {selectedTower && (
-              <Dialog
-                open={isAddApartmentOpen}
-                onOpenChange={setIsAddApartmentOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button>
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    Add Apartment
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New Apartment</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="number">Apartment Number</Label>
-                        <Input
-                          id="number"
-                          value={newApartment.number}
-                          onChange={(e) =>
-                            setNewApartment({
-                              ...newApartment,
-                              number: e.target.value,
-                            })
-                          }
-                          placeholder="e.g. A-101"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="type">Type</Label>
-                        <Select
-                          value={newApartment.type}
-                          onValueChange={(value) =>
-                            setNewApartment({ ...newApartment, type: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1BHK">1 BHK</SelectItem>
-                            <SelectItem value="2BHK">2 BHK</SelectItem>
-                            <SelectItem value="3BHK">3 BHK</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="floor">Floor</Label>
-                        <Input
-                          id="floor"
-                          type="number"
-                          value={newApartment.floor}
-                          onChange={(e) =>
-                            setNewApartment({
-                              ...newApartment,
-                              floor: parseInt(e.target.value),
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="status">Status</Label>
-                        <Select
-                          value={newApartment.status}
-                          onValueChange={(value: any) =>
-                            setNewApartment({ ...newApartment, status: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="FOR_RENT">For Rent</SelectItem>
-                            <SelectItem value="FOR_SALE">For Sale</SelectItem>
-                            <SelectItem value="OCCUPIED">Occupied</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="monthlyRent">
-                        Monthly Rent (optional)
-                      </Label>
-                      <Input
-                        id="monthlyRent"
-                        type="number"
-                        value={newApartment.monthlyRent}
-                        onChange={(e) =>
-                          setNewApartment({
-                            ...newApartment,
-                            monthlyRent: e.target.value,
-                          })
-                        }
-                        placeholder="Enter amount"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="salePrice">Sale Price (optional)</Label>
-                      <Input
-                        id="salePrice"
-                        type="number"
-                        value={newApartment.salePrice}
-                        onChange={(e) =>
-                          setNewApartment({
-                            ...newApartment,
-                            salePrice: e.target.value,
-                          })
-                        }
-                        placeholder="Enter amount"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contactNumber">Contact Number</Label>
-                      <Input
-                        id="contactNumber"
-                        value={newApartment.contactNumber}
-                        onChange={(e) =>
-                          setNewApartment({
-                            ...newApartment,
-                            contactNumber: e.target.value,
-                          })
-                        }
-                        placeholder="Enter contact number"
-                      />
-                    </div>
-                    <Button
-                      onClick={() =>
-                        addApartmentMutation.mutate({
-                          ...newApartment,
-                          towerId: selectedTower.id,
-                        })
-                      }
-                      disabled={
-                        !newApartment.number || addApartmentMutation.isPending
-                      }
-                    >
+        <Card className="md:col-span-8 shadow-lg border-border/40">
+          <CardHeader className="border-b bg-muted/50 px-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Home className="h-5 w-5" />
+                {selectedTower
+                  ? `${selectedTower.name} Apartments`
+                  : "Select a tower to view apartments"}
+              </CardTitle>
+              {selectedTower && (
+                <Dialog
+                  open={isAddApartmentOpen}
+                  onOpenChange={setIsAddApartmentOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button>
+                      <PlusCircle className="w-4 h-4 mr-2" />
                       Add Apartment
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Add New Apartment</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-6 pt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="number">Apartment Number</Label>
+                          <Input
+                            id="number"
+                            value={newApartment.number}
+                            onChange={(e) =>
+                              setNewApartment({
+                                ...newApartment,
+                                number: e.target.value,
+                              })
+                            }
+                            placeholder="e.g. A-101"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="type">Type</Label>
+                          <Select
+                            value={newApartment.type}
+                            onValueChange={(value) =>
+                              setNewApartment({ ...newApartment, type: value })
+                            }
+                          >
+                            <SelectTrigger id="type">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1BHK">1 BHK</SelectItem>
+                              <SelectItem value="2BHK">2 BHK</SelectItem>
+                              <SelectItem value="3BHK">3 BHK</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="floor">Floor</Label>
+                          <Input
+                            id="floor"
+                            type="number"
+                            value={newApartment.floor}
+                            onChange={(e) =>
+                              setNewApartment({
+                                ...newApartment,
+                                floor: parseInt(e.target.value),
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="status">Status</Label>
+                          <Select
+                            value={newApartment.status}
+                            onValueChange={(value: any) =>
+                              setNewApartment({
+                                ...newApartment,
+                                status: value,
+                              })
+                            }
+                          >
+                            <SelectTrigger id="status">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="FOR_RENT">For Rent</SelectItem>
+                              <SelectItem value="FOR_SALE">For Sale</SelectItem>
+                              <SelectItem value="OCCUPIED">Occupied</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="monthlyRent">Monthly Rent (₹)</Label>
+                          <Input
+                            id="monthlyRent"
+                            type="number"
+                            value={newApartment.monthlyRent}
+                            onChange={(e) =>
+                              setNewApartment({
+                                ...newApartment,
+                                monthlyRent: e.target.value,
+                              })
+                            }
+                            placeholder="Enter amount"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="salePrice">Sale Price (₹)</Label>
+                          <Input
+                            id="salePrice"
+                            type="number"
+                            value={newApartment.salePrice}
+                            onChange={(e) =>
+                              setNewApartment({
+                                ...newApartment,
+                                salePrice: e.target.value,
+                              })
+                            }
+                            placeholder="Enter amount"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contactNumber">Contact Number</Label>
+                          <Input
+                            id="contactNumber"
+                            value={newApartment.contactNumber}
+                            onChange={(e) =>
+                              setNewApartment({
+                                ...newApartment,
+                                contactNumber: e.target.value,
+                              })
+                            }
+                            placeholder="Enter contact number"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() =>
+                          addApartmentMutation.mutate({
+                            ...newApartment,
+                            towerId: selectedTower.id,
+                          })
+                        }
+                        disabled={
+                          !newApartment.number || addApartmentMutation.isPending
+                        }
+                        className="w-full"
+                      >
+                        {addApartmentMutation.isPending
+                          ? "Adding..."
+                          : "Add Apartment"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             {!selectedTower ? (
               <div className="text-center py-12 text-muted-foreground">
-                <p>Select a tower to view and manage its apartments</p>
+                <Home className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium mb-1">Select a tower</p>
+                <p className="text-sm">
+                  Choose a tower to view and manage its apartments.
+                </p>
               </div>
             ) : isLoadingApartments ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-24 w-full animate-pulse bg-muted rounded-lg"
+                    className="h-28 w-full animate-pulse bg-muted rounded-lg"
                   />
                 ))}
               </div>
             ) : apartments && apartments.length > 0 ? (
-              <ScrollArea className="h-[600px] pr-4">
+              <ScrollArea className="h-[calc(100vh-300px)]">
                 <div className="space-y-4">
                   {apartments.map((apartment) => (
                     <div
                       key={apartment.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border rounded-xl bg-card hover:shadow-md transition-all duration-200 gap-4"
                     >
-                      <div>
-                        <h3 className="font-medium">
-                          {selectedTower.name} - {apartment.number}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {apartment.type} • Floor {apartment.floor} •{" "}
-                          {apartment.status.replace("_", " ")}
-                        </p>
-                        {apartment.monthlyRent && (
-                          <p className="text-sm text-muted-foreground">
-                            Rent: ₹{apartment.monthlyRent}/month
-                          </p>
-                        )}
-                        {apartment.salePrice && (
-                          <p className="text-sm text-muted-foreground">
-                            Price: ₹{apartment.salePrice}
-                          </p>
-                        )}
+                      <div className="space-y-4 w-full sm:flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                          <h3 className="font-semibold text-lg">
+                            {selectedTower.name} - {apartment.number}
+                          </h3>
+                          <Badge
+                            variant={
+                              apartment.status === "OCCUPIED"
+                                ? "default"
+                                : apartment.status === "FOR_RENT"
+                                ? "secondary"
+                                : "outline"
+                            }
+                            className="w-fit"
+                          >
+                            {apartment.status.replace("_", " ")}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Home className="h-4 w-4 shrink-0" />
+                            <span>
+                              {apartment.type} • Floor {apartment.floor}
+                            </span>
+                          </div>
+                          {apartment.monthlyRent && (
+                            <div className="flex items-center gap-2">
+                              <IndianRupee className="h-4 w-4 shrink-0" />
+                              <span>₹{apartment.monthlyRent}/month</span>
+                            </div>
+                          )}
+                          {apartment.salePrice && (
+                            <div className="flex items-center gap-2">
+                              <IndianRupee className="h-4 w-4 shrink-0" />
+                              <span>₹{apartment.salePrice}</span>
+                            </div>
+                          )}
+                          {apartment.contactNumber && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 shrink-0" />
+                              <span>{apartment.contactNumber}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() =>
-                            deleteApartmentMutation.mutate(apartment.id)
-                          }
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() =>
+                          deleteApartmentMutation.mutate(apartment.id)
+                        }
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
               </ScrollArea>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
-                <p>No apartments found in this tower</p>
+                <Home className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium mb-1">No apartments found</p>
+                <p className="text-sm">
+                  Add apartments to {selectedTower.name}.
+                </p>
               </div>
             )}
           </CardContent>
