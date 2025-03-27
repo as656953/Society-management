@@ -55,6 +55,19 @@ export const bookings = pgTable("bookings", {
   deletedAt: timestamp("deleted_at"),
 });
 
+export const notices = pgTable("notices", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => users.id),
+  priority: text("priority").notNull().default("NORMAL"), // "HIGH", "NORMAL", "LOW"
+  expiresAt: timestamp("expires_at"),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const updateUserSchema = z.object({
   isAdmin: z.boolean(),
@@ -85,3 +98,9 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Apartment = typeof apartments.$inferSelect;
 export type Amenity = typeof amenities.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
+export type Notice = typeof notices.$inferSelect;
+export type InsertNotice = typeof notices.$inferInsert;
+
+export const insertNoticeSchema = createInsertSchema(notices).omit({
+  id: true,
+});

@@ -6,8 +6,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { Booking, Apartment, Amenity } from "@shared/schema";
+import { Booking, Apartment, Amenity, Notice } from "@shared/schema";
 import { Link } from "wouter";
+import { NoticeCard } from "@/components/NoticeCard";
+import { CreateNoticeDialog } from "@/components/CreateNoticeDialog";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -26,6 +28,10 @@ export default function Dashboard() {
     queryKey: ["/api/apartments"],
   });
 
+  const { data: notices, isLoading: isLoadingNotices } = useQuery<Notice[]>({
+    queryKey: ["/api/notices"],
+  });
+
   const userApartment = apartments?.find((a) => a.id === user?.apartmentId);
 
   const getAmenityName = (amenityId: number) => {
@@ -39,6 +45,34 @@ export default function Dashboard() {
       <h1 className="text-3xl font-bold mb-6">Welcome, {user?.name}</h1>
 
       <div className="grid md:grid-cols-2 gap-6">
+        {/* Notices Section */}
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Notices</CardTitle>
+            {user?.isAdmin && <CreateNoticeDialog />}
+          </CardHeader>
+          <CardContent>
+            {isLoadingNotices ? (
+              <div className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ) : notices && notices.length > 0 ? (
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-4">
+                  {notices.map((notice) => (
+                    <NoticeCard key={notice.id} notice={notice} />
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No notices available.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Apartment Information */}
         <Card>
           <CardHeader>

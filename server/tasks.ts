@@ -1,13 +1,26 @@
 import { storage } from "./storage";
+import { CronJob } from "cron";
 
-export async function setupScheduledTasks() {
-  // Run cleanup every hour
-  setInterval(async () => {
+export function setupScheduledTasks() {
+  // Remove expired bookings every hour
+  new CronJob("0 * * * *", async () => {
     try {
+      console.log("Running expired bookings cleanup task...");
       await storage.removeExpiredBookings();
-      console.log("Cleaned up expired booking requests");
+      console.log("Expired bookings cleanup completed");
     } catch (error) {
-      console.error("Error cleaning up expired booking requests:", error);
+      console.error("Error in expired bookings cleanup task:", error);
     }
-  }, 1000 * 60 * 60); // Run every hour
+  }).start();
+
+  // Remove expired notices every hour
+  new CronJob("0 * * * *", async () => {
+    try {
+      console.log("Running expired notices cleanup task...");
+      await storage.removeExpiredNotices();
+      console.log("Expired notices cleanup completed");
+    } catch (error) {
+      console.error("Error in expired notices cleanup task:", error);
+    }
+  }).start();
 }

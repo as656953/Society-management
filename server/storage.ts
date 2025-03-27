@@ -8,6 +8,8 @@ import {
   type Apartment,
   type Amenity,
   type Booking,
+  notices,
+  type Notice,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, lt, isNull } from "drizzle-orm";
@@ -44,6 +46,12 @@ export interface IStorage {
   ): Promise<Booking>;
   getAllBookings(): Promise<Booking[]>;
   removeExpiredBookings(): Promise<void>;
+
+  // Notices
+  createNotice(notice: Omit<Notice, "id">): Promise<Notice>;
+  getNotices(): Promise<Notice[]>;
+  deleteNotice(id: number): Promise<void>;
+  removeExpiredNotices(): Promise<void>;
 
   sessionStore: session.Store;
 }
@@ -184,6 +192,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<void> {
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  async createNotice(notice: Omit<Notice, "id">): Promise<Notice> {
+    const [newNotice] = await db.insert(notices).values(notice).returning();
+    return newNotice;
+  }
+
+  async getNotices(): Promise<Notice[]> {
+    return await db.select().from(notices);
+  }
+
+  async deleteNotice(id: number): Promise<void> {
+    await db.delete(notices).where(eq(notices.id, id));
+  }
+
+  async removeExpiredNotices(): Promise<void> {
+    const now = new Date();
+    await db
+      .delete(notices)
+      .where(and(isNull(notices.expiresAt).not(), lt(notices.expiresAt, now)));
   }
 }
 

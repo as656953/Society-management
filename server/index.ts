@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { setupScheduledTasks } from "./tasks";
 import towersRouter from "./routes/towers";
 import apartmentsRouter from "./routes/apartments";
+import noticesRouter from "./routes/notices";
 import session from "express-session";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
@@ -66,6 +67,7 @@ app.use((req, res, next) => {
 
 app.use("/api/towers", towersRouter);
 app.use("/api/apartments", apartmentsRouter);
+app.use("/api/notices", noticesRouter);
 
 (async () => {
   const server = await registerRoutes(app);

@@ -5,7 +5,14 @@ import { insertUserSchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import { Building2 } from "lucide-react";
@@ -32,11 +39,11 @@ export default function AuthPage() {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login">
                 <LoginForm />
               </TabsContent>
-              
+
               <TabsContent value="register">
                 <RegisterForm />
               </TabsContent>
@@ -44,13 +51,14 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="hidden md:flex flex-col justify-center p-8 bg-primary/5">
         <div className="max-w-md mx-auto text-center">
           <Building2 className="h-16 w-16 mx-auto mb-4 text-primary" />
           <h2 className="text-3xl font-bold mb-4">Society Management System</h2>
           <p className="text-muted-foreground">
-            Access your society's amenities, manage bookings, and stay connected with your community.
+            Access your society's amenities, manage bookings, and stay connected
+            with your community.
           </p>
         </div>
       </div>
@@ -63,13 +71,16 @@ function LoginForm() {
   const form = useForm({
     defaultValues: {
       username: "",
-      password: ""
-    }
+      password: "",
+    },
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit((data) => loginMutation.mutate(data))}
+        className="space-y-4"
+      >
         <FormField
           control={form.control}
           name="username"
@@ -83,7 +94,7 @@ function LoginForm() {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="password"
@@ -97,8 +108,12 @@ function LoginForm() {
             </FormItem>
           )}
         />
-        
-        <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={loginMutation.isPending}
+        >
           {loginMutation.isPending ? "Logging in..." : "Login"}
         </Button>
       </form>
@@ -114,13 +129,16 @@ function RegisterForm() {
       username: "",
       password: "",
       name: "",
-      isAdmin: false
-    }
+      isAdmin: false,
+    },
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => registerMutation.mutate(data))} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit((data) => registerMutation.mutate(data))}
+        className="space-y-4"
+      >
         <FormField
           control={form.control}
           name="name"
@@ -134,7 +152,7 @@ function RegisterForm() {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="username"
@@ -148,7 +166,7 @@ function RegisterForm() {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="password"
@@ -162,8 +180,12 @@ function RegisterForm() {
             </FormItem>
           )}
         />
-        
-        <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={registerMutation.isPending}
+        >
           {registerMutation.isPending ? "Creating account..." : "Register"}
         </Button>
       </form>
