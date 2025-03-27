@@ -1,13 +1,14 @@
 import { Notice } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Clock } from "lucide-react";
 import { format, isPast, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 const priorityColors: Record<string, string> = {
   HIGH: "bg-red-100 text-red-800 border-red-300",
@@ -53,34 +54,67 @@ export function NoticeCard({ notice }: NoticeCardProps) {
     ? isPast(new Date(notice.expiresAt))
     : false;
 
+  // Auto-delete expired notices after a grace period
+  useEffect(() => {
+    if (isExpired && user?.isAdmin) {
+      const graceHours = 24; // Keep expired notices for 24 hours before auto-deletion
+      const expiryTime = new Date(notice.expiresAt!).getTime();
+      const deleteTime = expiryTime + graceHours * 60 * 60 * 1000;
+
+      if (Date.now() > deleteTime) {
+        deleteNoticeMutation.mutate();
+      } else {
+        // Schedule deletion after grace period
+        const timeoutId = setTimeout(() => {
+          deleteNoticeMutation.mutate();
+        }, deleteTime - Date.now());
+
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [isExpired, notice.expiresAt, user?.isAdmin]);
+
   return (
-    <Card className={cn("transition-opacity", isExpired && "opacity-50")}>
+    <Card
+      className={cn(
+        "transition-all duration-200",
+        isExpired ? "opacity-50 hover:opacity-80" : "opacity-100",
+        "group hover:shadow-md"
+      )}
+    >
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div className="space-y-2">
-          <CardTitle>{notice.title}</CardTitle>
-          <div className="flex gap-2">
+          <CardTitle className={cn(isExpired && "text-muted-foreground")}>
+            {notice.title}
+          </CardTitle>
+          <div className="flex flex-wrap gap-2">
             <Badge
               variant="outline"
-              className={priorityColors[notice.priority]}
+              className={cn(
+                priorityColors[notice.priority],
+                isExpired && "opacity-50"
+              )}
             >
               {notice.priority} Priority
             </Badge>
-            {notice.expiresAt &&
-              (isExpired ? (
-                <Badge
-                  variant="outline"
-                  className="bg-red-100 text-red-800 border-red-300"
-                >
-                  Expired
-                </Badge>
-              ) : (
-                <Badge
-                  variant="outline"
-                  className="bg-blue-100 text-blue-800 border-blue-300"
-                >
-                  Expires {formatDistanceToNow(new Date(notice.expiresAt))}
-                </Badge>
-              ))}
+            {notice.expiresAt && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "flex items-center gap-1",
+                  isExpired
+                    ? "bg-red-100 text-red-800 border-red-300"
+                    : "bg-blue-100 text-blue-800 border-blue-300"
+                )}
+              >
+                <Clock className="w-3 h-3" />
+                {isExpired
+                  ? "Expired"
+                  : `Expires ${formatDistanceToNow(
+                      new Date(notice.expiresAt)
+                    )}`}
+              </Badge>
+            )}
           </div>
         </div>
         {user?.isAdmin && (
@@ -89,15 +123,28 @@ export function NoticeCard({ notice }: NoticeCardProps) {
             size="icon"
             onClick={() => deleteNoticeMutation.mutate()}
             disabled={deleteNoticeMutation.isPending}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         )}
       </CardHeader>
       <CardContent>
-        <p className="whitespace-pre-wrap mb-2">{notice.content}</p>
-        <p className="text-sm text-muted-foreground">
+        <p
+          className={cn(
+            "whitespace-pre-wrap mb-2",
+            isExpired && "text-muted-foreground"
+          )}
+        >
+          {notice.content}
+        </p>
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
           Posted on {format(new Date(notice.createdAt), "PPP")}
+          {isExpired && (
+            <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+              This notice has expired
+            </span>
+          )}
         </p>
       </CardContent>
     </Card>

@@ -28,9 +28,11 @@ import {
   Home,
   IndianRupee,
   Phone,
+  Settings,
 } from "lucide-react";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Tower {
   id: number;
@@ -49,6 +51,56 @@ interface Apartment {
   ownerId: number | null;
   contactNumber: string | null;
 }
+
+const headingVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut",
+    },
+  },
+};
+
+const underlineVariants = {
+  initial: { width: 0 },
+  animate: {
+    width: "100%",
+    transition: {
+      duration: 0.8,
+      ease: "easeOut",
+    },
+  },
+};
+
+const iconVariants = {
+  initial: { rotate: 0, scale: 0.8 },
+  animate: {
+    rotate: 360,
+    scale: 1,
+    transition: {
+      duration: 0.8,
+      ease: "easeOut",
+    },
+  },
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 export default function ManageProperties() {
   const { toast } = useToast();
@@ -184,54 +236,82 @@ export default function ManageProperties() {
   });
 
   return (
-    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Manage Properties
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Manage towers and their apartments in your society.
-          </p>
-        </div>
-        <Dialog open={isAddTowerOpen} onOpenChange={setIsAddTowerOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Add Tower
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Tower</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="towerName">Tower Name</Label>
-                <Input
-                  id="towerName"
-                  value={newTowerName}
-                  onChange={(e) => setNewTowerName(e.target.value)}
-                  placeholder="e.g. Tower A"
+    <div className="container p-6 space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <motion.div
+            className="relative"
+            variants={headingVariants}
+            initial="initial"
+            animate="animate"
+          >
+            <div className="flex items-center gap-3">
+              <motion.div variants={iconVariants} className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-full blur-xl" />
+                <Settings className="h-8 w-8 text-primary relative z-10" />
+              </motion.div>
+              <div className="relative">
+                <h1 className="text-4xl font-display font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary animate-gradient-x">
+                  Manage Properties
+                </h1>
+                <motion.div
+                  variants={underlineVariants}
+                  className="absolute -bottom-2 left-0 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full"
                 />
               </div>
-              <Button
-                onClick={() => addTowerMutation.mutate(newTowerName)}
-                disabled={!newTowerName || addTowerMutation.isPending}
-                className="w-full"
-              >
-                {addTowerMutation.isPending ? "Adding..." : "Add Tower"}
-              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
+            <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
+          </motion.div>
+          <Dialog open={isAddTowerOpen} onOpenChange={setIsAddTowerOpen}>
+            <DialogTrigger asChild>
+              <Button className="relative group">
+                <span className="absolute inset-0 w-0 bg-primary/10 group-hover:w-full transition-all duration-300 rounded-md" />
+                <PlusCircle className="w-4 h-4 mr-2 relative" />
+                <span className="relative">Add Tower</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Tower</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="towerName">Tower Name</Label>
+                  <Input
+                    id="towerName"
+                    value={newTowerName}
+                    onChange={(e) => setNewTowerName(e.target.value)}
+                    placeholder="e.g. Tower A"
+                  />
+                </div>
+                <Button
+                  onClick={() => addTowerMutation.mutate(newTowerName)}
+                  disabled={!newTowerName || addTowerMutation.isPending}
+                  className="w-full relative group"
+                >
+                  <span className="absolute inset-0 w-0 bg-primary/10 group-hover:w-full transition-all duration-300 rounded-md" />
+                  <span className="relative">
+                    {addTowerMutation.isPending ? "Adding..." : "Add Tower"}
+                  </span>
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        <Card className="md:col-span-4 shadow-lg border-border/40">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-12 gap-6"
+      >
+        <Card className="md:col-span-4 shadow-lg border-border/40 bg-gradient-to-br from-card to-card/50">
           <CardHeader className="border-b bg-muted/50 px-6">
             <CardTitle className="text-xl flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
+              <Building2 className="h-5 w-5 text-primary" />
               Towers
             </CardTitle>
           </CardHeader>
@@ -248,16 +328,17 @@ export default function ManageProperties() {
             ) : towers?.length ? (
               <div className="space-y-2">
                 {towers.map((tower) => (
-                  <div
+                  <motion.div
                     key={tower.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 ${
+                    variants={itemVariants}
+                    className={`group flex items-center justify-between p-4 rounded-lg border transition-all duration-200 ${
                       selectedTower?.id === tower.id
                         ? "bg-primary/10 border-primary"
                         : "hover:bg-muted/50"
                     }`}
                   >
                     <button
-                      className="flex-1 text-left font-medium"
+                      className="flex-1 text-left font-medium group-hover:text-primary transition-colors duration-200"
                       onClick={() => setSelectedTower(tower)}
                     >
                       {tower.name}
@@ -265,12 +346,12 @@ export default function ManageProperties() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
                       onClick={() => deleteTowerMutation.mutate(tower.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             ) : (
@@ -283,11 +364,11 @@ export default function ManageProperties() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-8 shadow-lg border-border/40">
+        <Card className="md:col-span-8 shadow-lg border-border/40 bg-gradient-to-br from-card to-card/50">
           <CardHeader className="border-b bg-muted/50 px-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle className="text-xl flex items-center gap-2">
-                <Home className="h-5 w-5" />
+                <Home className="h-5 w-5 text-primary" />
                 {selectedTower
                   ? `${selectedTower.name} Apartments`
                   : "Select a tower to view apartments"}
@@ -298,9 +379,10 @@ export default function ManageProperties() {
                   onOpenChange={setIsAddApartmentOpen}
                 >
                   <DialogTrigger asChild>
-                    <Button>
-                      <PlusCircle className="w-4 h-4 mr-2" />
-                      Add Apartment
+                    <Button className="relative group">
+                      <span className="absolute inset-0 w-0 bg-primary/10 group-hover:w-full transition-all duration-300 rounded-md" />
+                      <PlusCircle className="w-4 h-4 mr-2 relative" />
+                      <span className="relative">Add Apartment</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[500px]">
@@ -436,11 +518,14 @@ export default function ManageProperties() {
                         disabled={
                           !newApartment.number || addApartmentMutation.isPending
                         }
-                        className="w-full"
+                        className="w-full relative group"
                       >
-                        {addApartmentMutation.isPending
-                          ? "Adding..."
-                          : "Add Apartment"}
+                        <span className="absolute inset-0 w-0 bg-primary/10 group-hover:w-full transition-all duration-300 rounded-md" />
+                        <span className="relative">
+                          {addApartmentMutation.isPending
+                            ? "Adding..."
+                            : "Add Apartment"}
+                        </span>
                       </Button>
                     </div>
                   </DialogContent>
@@ -470,13 +555,15 @@ export default function ManageProperties() {
               <ScrollArea className="h-[calc(100vh-300px)]">
                 <div className="space-y-4">
                   {apartments.map((apartment) => (
-                    <div
+                    <motion.div
                       key={apartment.id}
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border rounded-xl bg-card hover:shadow-md transition-all duration-200 gap-4"
+                      variants={itemVariants}
+                      className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border rounded-xl bg-card hover:shadow-md transition-all duration-200 gap-4 relative overflow-hidden"
                     >
-                      <div className="space-y-4 w-full sm:flex-1">
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="space-y-4 w-full sm:flex-1 relative">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                          <h3 className="font-semibold text-lg">
+                          <h3 className="font-semibold text-lg group-hover:text-primary transition-colors duration-200">
                             {selectedTower.name} - {apartment.number}
                           </h3>
                           <Badge
@@ -522,14 +609,14 @@ export default function ManageProperties() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
                         onClick={() =>
                           deleteApartmentMutation.mutate(apartment.id)
                         }
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </ScrollArea>
@@ -544,7 +631,7 @@ export default function ManageProperties() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 }
