@@ -4,12 +4,12 @@
   "installCommand": "npm install --include=dev",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.js": {
-      "includeFiles": "server/**/*"
+    "api/index.ts": {
+      "includeFiles": "server/**/*,shared/**/*"
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/(.*)", "destination": "/api/index.js" }
+    { "source": "/api/(.*)", "destination": "/api/index.ts" },
+    { "source": "/(.*)", "destination": "/api/index.ts" }
   ]
 }
