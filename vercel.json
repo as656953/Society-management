@@ -4,12 +4,12 @@
   "installCommand": "npm install --include=dev",
   "outputDirectory": "dist/public",
   "functions": {
-    "api-dist/index.js": {
+    "api/handler.js": {
       "runtime": "@vercel/node@3.0.0"
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api-dist/index.js" },
-    { "source": "/(.*)", "destination": "/api-dist/index.js" }
+    { "source": "/api/(.*)", "destination": "/api/handler.js" },
+    { "source": "/(.*)", "destination": "/api/handler.js" }
   ]
 }
