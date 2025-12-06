@@ -3,11 +3,12 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install --include=dev",
   "outputDirectory": "dist/public",
-  "functions": {
-    "api/index.js": {
-      "runtime": "@vercel/node@3.0.0"
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node@3.0.0"
     }
-  },
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/api/index.js" }
