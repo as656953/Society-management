@@ -1,8 +1,8 @@
 import type { Express } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { insertVisitorSchema, checkoutVisitorSchema, insertPreApprovedVisitorSchema } from "@shared/schema";
 import { ZodError } from "zod";
-import { notifyApartmentResidents, createNotification } from "./notifications";
+import { notifyApartmentResidents, createNotification } from "./notifications.js";
 
 export function registerVisitorRoutes(app: Express) {
   // Guard middleware - checks if user is guard or admin

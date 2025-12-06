@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 export function registerReportRoutes(app: Express) {
   // Dashboard statistics - overview of all key metrics

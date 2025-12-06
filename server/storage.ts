@@ -35,7 +35,7 @@ import {
   towers,
   type Tower,
 } from "@shared/schema";
-import { db, pool } from "./db";
+import { db, pool } from "./db.js";
 import { eq, and, lt, isNull, isNotNull, desc, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";

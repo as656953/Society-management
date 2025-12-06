@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { CronJob } from "cron";
 
 // Helper to create notification (avoiding circular import)

@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { updateProfileSchema, changePasswordSchema, insertVehicleSchema, updateVehicleSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";

@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { storage } from "../storage";
-import { isAdmin } from "../middleware/auth";
+import { storage } from "../storage.js";
+import { isAdmin } from "../middleware/auth.js";
 import { towers, apartments } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
+import { db } from "../db.js";
 
 const router = Router();
 

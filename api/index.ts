@@ -10,12 +10,12 @@ async function getApp(): Promise<express.Express> {
   if (app) return app;
 
   // Dynamic imports for all server code
-  const { registerRoutes } = await import('../server/routes.js');
-  const { setupAuth } = await import('../server/auth.js');
-  const { storage } = await import('../server/storage.js');
-  const towersRouter = (await import('../server/routes/towers.js')).default;
-  const apartmentsRouter = (await import('../server/routes/apartments.js')).default;
-  const noticesRouter = (await import('../server/routes/notices.js')).default;
+  const { registerRoutes } = await import('../server/routes');
+  const { setupAuth } = await import('../server/auth');
+  const { storage } = await import('../server/storage');
+  const towersRouter = (await import('../server/routes/towers')).default;
+  const apartmentsRouter = (await import('../server/routes/apartments')).default;
+  const noticesRouter = (await import('../server/routes/notices')).default;
 
   app = express();
 

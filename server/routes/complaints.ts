@@ -1,8 +1,8 @@
 import type { Express } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { insertComplaintSchema, updateComplaintSchema, insertComplaintCommentSchema } from "@shared/schema";
 import { ZodError } from "zod";
-import { createNotification, notifyAdmins } from "./notifications";
+import { createNotification, notifyAdmins } from "./notifications.js";
 
 export function registerComplaintRoutes(app: Express) {
   // Middleware - checks if user is authenticated resident with apartment

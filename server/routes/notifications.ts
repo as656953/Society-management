@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import type { InsertNotification } from "@shared/schema";
 import { updateNotificationPreferencesSchema } from "@shared/schema";
 import { ZodError } from "zod";

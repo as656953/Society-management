@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
-import { storage } from "./storage";
+import { setupAuth } from "./auth.js";
+import { storage } from "./storage.js";
 import {
   insertBookingSchema,
   updateApartmentSchema,
@@ -11,11 +11,11 @@ import {
   updateAmenitySchema,
 } from "@shared/schema";
 import { ZodError } from "zod";
-import { registerVisitorRoutes } from "./routes/visitors";
-import { registerComplaintRoutes } from "./routes/complaints";
-import { registerProfileRoutes } from "./routes/profile";
-import { registerReportRoutes } from "./routes/reports";
-import { registerNotificationRoutes, createNotification, notifyAdmins } from "./routes/notifications";
+import { registerVisitorRoutes } from "./routes/visitors.js";
+import { registerComplaintRoutes } from "./routes/complaints.js";
+import { registerProfileRoutes } from "./routes/profile.js";
+import { registerReportRoutes } from "./routes/reports.js";
+import { registerNotificationRoutes, createNotification, notifyAdmins } from "./routes/notifications.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
