@@ -419,25 +419,48 @@ import { eq, and, lt, isNull, isNotNull, desc, gte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import createMemoryStore from "memorystore";
-var PostgresSessionStore, MemoryStore, isProduction, DatabaseStorage, storage;
+function getPostgresSessionStore() {
+  if (!PostgresSessionStore) {
+    PostgresSessionStore = connectPg(session);
+  }
+  return PostgresSessionStore;
+}
+function getMemoryStore() {
+  if (!MemoryStore) {
+    MemoryStore = createMemoryStore(session);
+  }
+  return MemoryStore;
+}
+function getStorage() {
+  if (!_storage) {
+    _storage = new DatabaseStorage();
+  }
+  return _storage;
+}
+var PostgresSessionStore, MemoryStore, isProduction, DatabaseStorage, _storage, storage;
 var init_storage = __esm({
   "server/storage.ts"() {
     "use strict";
     init_schema();
     init_db();
-    PostgresSessionStore = connectPg(session);
-    MemoryStore = createMemoryStore(session);
+    PostgresSessionStore = null;
+    MemoryStore = null;
     isProduction = process.env.NODE_ENV === "production";
     DatabaseStorage = class {
-      sessionStore;
-      constructor() {
-        this.sessionStore = isProduction ? new MemoryStore({
-          checkPeriod: 864e5
-          // prune expired entries every 24h
-        }) : new PostgresSessionStore({
-          pool,
-          createTableIfMissing: true
-        });
+      _sessionStore = null;
+      get sessionStore() {
+        if (!this._sessionStore) {
+          const MemStore = getMemoryStore();
+          const PgStore = getPostgresSessionStore();
+          this._sessionStore = isProduction ? new MemStore({
+            checkPeriod: 864e5
+            // prune expired entries every 24h
+          }) : new PgStore({
+            pool,
+            createTableIfMissing: true
+          });
+        }
+        return this._sessionStore;
       }
       async getUser(id) {
         const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -815,7 +838,12 @@ var init_storage = __esm({
         }
       }
     };
-    storage = new DatabaseStorage();
+    _storage = null;
+    storage = new Proxy({}, {
+      get(_, prop) {
+        return getStorage()[prop];
+      }
+    });
   }
 });
 
