@@ -12,3 +12,4 @@ vite.config.ts.*
 nul
 run-migration.js
 run-notification-prefs-migration.js
+.vercel
