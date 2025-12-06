@@ -18,7 +18,9 @@ import {
   Search,
   Filter,
   ArrowUpDown,
+  Users,
 } from "lucide-react";
+import { User } from "@shared/schema";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -92,6 +94,18 @@ export default function ApartmentDirectory() {
     queryKey: [`/api/towers/${selectedTower}/apartments`],
     enabled: !!selectedTower,
   });
+
+  // Fetch all users to count residents per apartment (admin only)
+  const { data: allUsers } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    enabled: user?.isAdmin,
+  });
+
+  // Helper to get resident count for an apartment
+  const getResidentCount = (apartmentId: number) => {
+    if (!allUsers) return 0;
+    return allUsers.filter((u) => u.apartmentId === apartmentId).length;
+  };
 
   const updateApartmentMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -267,36 +281,34 @@ export default function ApartmentDirectory() {
   };
 
   return (
-    <div className="container p-6 space-y-8">
+    <div className="container px-4 py-4 md:p-6 space-y-4 md:space-y-8">
       {/* Header Section */}
-      <div className="flex flex-col space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col space-y-3 md:space-y-4">
+        <div className="flex flex-col gap-3 md:gap-4">
           <motion.div
             className="relative"
             variants={headingVariants}
             initial="initial"
             animate="animate"
           >
-            <div className="flex items-center gap-3">
-              <motion.div variants={iconVariants} className="relative">
+            <div className="flex items-center gap-2 md:gap-3">
+              <motion.div variants={iconVariants} className="relative flex-shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-full blur-xl" />
-                <Building2 className="h-8 w-8 text-primary relative z-10" />
+                <Building2 className="h-6 w-6 md:h-8 md:w-8 text-primary relative z-10" />
               </motion.div>
               <div className="relative">
-                <h1 className="text-4xl font-display font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary animate-gradient-x">
+                <h1 className="text-2xl md:text-4xl font-display font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary animate-gradient-x">
                   Apartment Directory
                 </h1>
                 <motion.div
                   variants={underlineVariants}
-                  className="absolute -bottom-2 left-0 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full"
+                  className="absolute -bottom-1 md:-bottom-2 left-0 h-0.5 md:h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full"
                 />
               </div>
             </div>
-            <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
-            <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
           </motion.div>
           <Select value={selectedTower} onValueChange={setSelectedTower}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="Select Tower" />
             </SelectTrigger>
             <SelectContent>
@@ -316,61 +328,63 @@ export default function ApartmentDirectory() {
         </div>
 
         {selectedTower && (
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-2 md:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search apartments..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-9"
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full md:w-auto">
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filter Status
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px]">
-                <DropdownMenuItem onClick={() => setStatusFilter("ALL")}>
-                  All Status
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("OCCUPIED")}>
-                  Occupied
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setStatusFilter("AVAILABLE_RENT")}
-                >
-                  Available for Rent
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setStatusFilter("AVAILABLE_SALE")}
-                >
-                  Available for Sale
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full md:w-auto">
-                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                  Sort By
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px]">
-                <DropdownMenuItem onClick={() => setSortBy("number")}>
-                  Apartment Number
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy("floor")}>
-                  Floor Number
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy("price")}>
-                  Price
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex-1 md:flex-initial h-9 text-xs md:text-sm">
+                    <Filter className="mr-1.5 h-3.5 w-3.5 md:mr-2 md:h-4 md:w-4" />
+                    Filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px]">
+                  <DropdownMenuItem onClick={() => setStatusFilter("ALL")}>
+                    All Status
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("OCCUPIED")}>
+                    Occupied
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setStatusFilter("AVAILABLE_RENT")}
+                  >
+                    Available for Rent
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setStatusFilter("AVAILABLE_SALE")}
+                  >
+                    Available for Sale
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex-1 md:flex-initial h-9 text-xs md:text-sm">
+                    <ArrowUpDown className="mr-1.5 h-3.5 w-3.5 md:mr-2 md:h-4 md:w-4" />
+                    Sort
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px]">
+                  <DropdownMenuItem onClick={() => setSortBy("number")}>
+                    Apartment Number
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("floor")}>
+                    Floor Number
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("price")}>
+                    Price
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         )}
       </div>
@@ -436,14 +450,11 @@ export default function ApartmentDirectory() {
                 key={apartment.id}
                 variants={cardVariants}
                 whileHover="hover"
-                whileTap="tap"
                 layout
               >
                 <Card className="group relative overflow-hidden">
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100"
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                   />
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
@@ -460,6 +471,25 @@ export default function ApartmentDirectory() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
+                        {/* Resident count badge - admin only */}
+                        {user?.isAdmin && getResidentCount(apartment.id) > 0 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 border-purple-300 flex items-center gap-1"
+                                >
+                                  <Users className="h-3 w-3" />
+                                  {getResidentCount(apartment.id)}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{getResidentCount(apartment.id)} resident{getResidentCount(apartment.id) > 1 ? "s" : ""} assigned</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                         <motion.div variants={statusVariants}>
                           <Badge
                             variant="outline"
@@ -494,8 +524,11 @@ export default function ApartmentDirectory() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
-                                      onClick={() => handleEdit(apartment)}
+                                      className="relative z-10 opacity-50 group-hover:opacity-100 transition-opacity duration-200 hover:bg-primary/10"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(apartment);
+                                      }}
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>

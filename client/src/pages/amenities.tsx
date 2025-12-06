@@ -27,7 +27,10 @@ import {
   ArrowUpDown,
   Building2,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -87,6 +90,7 @@ const iconAnimation = {
 
 export default function Amenities() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedStartDate, setSelectedStartDate] = useState<Date | undefined>(
     new Date()
   );
@@ -96,6 +100,9 @@ export default function Amenities() {
   const [selectedAmenity, setSelectedAmenity] = useState<Amenity | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "capacity">("name");
+
+  // Check if user can book (has apartment or is admin)
+  const canBook = user?.isAdmin || !!user?.apartmentId;
 
   const { data: amenities, isLoading } = useQuery<Amenity[]>({
     queryKey: ["/api/amenities"],
@@ -170,13 +177,13 @@ export default function Amenities() {
   });
 
   return (
-    <div className="container p-6">
-      <div className="flex flex-col gap-6">
+    <div className="container px-4 py-4 md:p-6">
+      <div className="flex flex-col gap-4 md:gap-6">
         <motion.div
           variants={headerAnimation}
           initial="hidden"
           animate="show"
-          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+          className="flex flex-col gap-3"
         >
           <div className="space-y-1">
             <motion.div
@@ -189,12 +196,12 @@ export default function Amenities() {
                 variants={iconAnimation}
                 initial="hidden"
                 animate="show"
-                className="p-2 rounded-lg bg-primary/10"
+                className="p-1.5 md:p-2 rounded-lg bg-primary/10"
               >
-                <Sparkles className="h-6 w-6 text-primary" />
+                <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary" />
               </motion.div>
               <motion.h1
-                className="text-3xl font-bold tracking-tight"
+                className="text-2xl md:text-3xl font-bold tracking-tight"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
@@ -203,7 +210,7 @@ export default function Amenities() {
               </motion.h1>
             </motion.div>
             <motion.p
-              className="text-muted-foreground"
+              className="text-sm md:text-base text-muted-foreground"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
@@ -223,7 +230,7 @@ export default function Amenities() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 hover:bg-primary/10 transition-colors"
+                    className="h-9 w-9 hover:bg-primary/10 transition-colors flex-shrink-0"
                     onClick={() =>
                       setSortBy(sortBy === "name" ? "capacity" : "name")
                     }
@@ -236,17 +243,27 @@ export default function Amenities() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <div className="relative group">
+            <div className="relative group flex-1 md:flex-initial">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
               <Input
                 placeholder="Search amenities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 w-[200px] focus:ring-primary/20 transition-all duration-200"
+                className="pl-8 w-full md:w-[200px] focus:ring-primary/20 transition-all duration-200"
               />
             </div>
           </motion.div>
         </motion.div>
+
+        {!canBook && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>No Apartment Assigned</AlertTitle>
+            <AlertDescription>
+              You need to have an apartment assigned to book amenities. Please contact the administrator to get your apartment assigned.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
@@ -277,7 +294,8 @@ export default function Amenities() {
                         <DialogTrigger asChild>
                           <Button
                             onClick={() => setSelectedAmenity(amenity)}
-                            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white transition-all duration-300"
+                            disabled={!canBook}
+                            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Book Now
                           </Button>

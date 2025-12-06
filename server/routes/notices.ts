@@ -1,6 +1,7 @@
 import express from "express";
 import { storage } from "../storage";
 import { isBefore } from "date-fns";
+import { createNotification } from "./notifications";
 
 const router = express.Router();
 
@@ -65,11 +66,27 @@ router.post("/", async (req, res) => {
       createdBy: req.user.id,
       createdAt: now,
       updatedAt: now,
+      isArchived: false,
     };
     console.log("Creating notice with data:", noticeData);
 
     const notice = await storage.createNotice(noticeData);
     console.log("Notice created successfully:", notice);
+
+    // Notify all residents about the new notice
+    const allUsers = await storage.getAllUsers();
+    const residents = allUsers.filter(u => u.role !== "admin" && !u.isAdmin);
+
+    for (const resident of residents) {
+      await createNotification({
+        userId: resident.id,
+        type: "notice",
+        title: notice.priority === "HIGH" ? "Important Notice" : "New Notice",
+        message: notice.title,
+        link: "/",
+      });
+    }
+
     res.json(notice);
   } catch (error) {
     console.error("Error creating notice:", error);
@@ -77,6 +94,27 @@ router.post("/", async (req, res) => {
       error: "Failed to create notice",
       details: error instanceof Error ? error.message : "Unknown error",
     });
+  }
+});
+
+// Get archived notices (admin only)
+router.get("/archived", async (req, res) => {
+  try {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      res.status(403).json({ error: "Only admins can view archived notices" });
+      return;
+    }
+
+    const archivedNotices = await storage.getArchivedNotices();
+    // Sort by creation date (newest first)
+    archivedNotices.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    res.json(archivedNotices);
+  } catch (error) {
+    console.error("Error fetching archived notices:", error);
+    res.status(500).json({ error: "Failed to fetch archived notices" });
   }
 });
 

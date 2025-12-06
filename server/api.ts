@@ -51,6 +51,10 @@ app.post(
         content: req.body.content,
         createdBy: req.session.user.id,
         createdAt: new Date(),
+        updatedAt: new Date(),
+        priority: req.body.priority || "NORMAL",
+        expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : null,
+        isArchived: false,
       };
       console.log("Creating notice with data:", noticeData);
 

@@ -69,9 +69,14 @@ app.use("/api/towers", towersRouter);
 app.use("/api/apartments", apartmentsRouter);
 app.use("/api/notices", noticesRouter);
 
-(async () => {
+// Initialize and start server
+async function startServer() {
   const server = await registerRoutes(app);
-  await setupScheduledTasks();
+
+  // Only run scheduled tasks if not in serverless environment
+  if (process.env.VERCEL !== "1") {
+    await setupScheduledTasks();
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -90,10 +95,17 @@ app.use("/api/notices", noticesRouter);
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 3000
-  // this serves both the API and the client
-  const port = process.env.PORT || 3000;
-  server.listen(port, () => {
-    log(`Server running on port ${port}`);
-  });
-})();
+  // Only start server if not in Vercel environment
+  if (process.env.VERCEL !== "1") {
+    const port = process.env.PORT || 3000;
+    server.listen(port, () => {
+      log(`Server running on port ${port}`);
+    });
+  }
+}
+
+// Start server
+startServer();
+
+// Export for Vercel serverless
+export default app;
