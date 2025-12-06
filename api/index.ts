@@ -6,13 +6,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     // Lazy import to catch any initialization errors
     const express = (await import('express')).default;
     const session = (await import('express-session')).default;
-    const { registerRoutes } = await import('../server/routes');
-    const { serveStatic } = await import('../server/vite');
-    const { storage } = await import('../server/storage');
-    const { setupAuth } = await import('../server/auth');
-    const towersRouter = (await import('../server/routes/towers')).default;
-    const apartmentsRouter = (await import('../server/routes/apartments')).default;
-    const noticesRouter = (await import('../server/routes/notices')).default;
+    const { registerRoutes } = await import('../server/routes.js');
+    const { serveStatic } = await import('../server/vite.js');
+    const { storage } = await import('../server/storage.js');
+    const { setupAuth } = await import('../server/auth.js');
+    const towersRouter = (await import('../server/routes/towers.js')).default;
+    const apartmentsRouter = (await import('../server/routes/apartments.js')).default;
+    const noticesRouter = (await import('../server/routes/notices.js')).default;
 
     const app = express();
 
