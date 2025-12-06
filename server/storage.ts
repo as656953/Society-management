@@ -44,7 +44,7 @@ import createMemoryStore from "memorystore";
 const PostgresSessionStore = connectPg(session);
 const MemoryStore = createMemoryStore(session);
 
-// Use memory store in production (serverless), PostgreSQL locally
+// Use memory store in production (serverless) to avoid connection pool issues
 const isProduction = process.env.NODE_ENV === 'production';
 
 export interface IStorage {
