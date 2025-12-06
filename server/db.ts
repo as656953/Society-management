@@ -1,5 +1,7 @@
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
+import { neon } from "@neondatabase/serverless";
 import pg from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 
 if (!process.env.DATABASE_URL) {
@@ -8,12 +10,18 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure pool for serverless/Supabase compatibility
-export const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 1, // Limit connections in serverless
-  idleTimeoutMillis: 20000,
-  connectionTimeoutMillis: 10000,
-});
-export const db = drizzle(pool, { schema });
+// Use Neon serverless driver in production (Vercel), pg locally
+const isProduction = process.env.NODE_ENV === 'production';
+
+// For serverless (Vercel) - use Neon HTTP driver
+const sql = isProduction ? neon(process.env.DATABASE_URL) : null;
+
+// For local development - use pg Pool
+export const pool = isProduction
+  ? null
+  : new pg.Pool({ connectionString: process.env.DATABASE_URL });
+
+// Export the appropriate drizzle instance
+export const db = isProduction
+  ? drizzleNeon(sql!, { schema })
+  : drizzlePg(pool!, { schema });
