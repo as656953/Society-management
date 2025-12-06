@@ -8,5 +8,12 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+// Configure pool for serverless/Supabase compatibility
+export const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 1, // Limit connections in serverless
+  idleTimeoutMillis: 20000,
+  connectionTimeoutMillis: 10000,
+});
 export const db = drizzle(pool, { schema });
