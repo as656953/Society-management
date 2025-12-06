@@ -1,22 +1,12 @@
 var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-
-// server/api-source/handler.ts
-import express3 from "express";
-import session2 from "express-session";
-
-// server/routes.ts
-import { createServer } from "http";
-
-// server/auth.ts
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
 
 // shared/schema.ts
 var schema_exports = {};
@@ -67,314 +57,313 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password"),
-  // Nullable for Google OAuth users
-  isAdmin: boolean("is_admin").default(false).notNull(),
-  // Legacy - use 'role' instead
-  role: text("role").default("resident").notNull(),
-  // 'admin', 'resident', 'guard'
-  name: text("name").notNull(),
-  apartmentId: integer("apartment_id"),
-  residentType: text("resident_type"),
-  // 'OWNER' or 'TENANT' - only set when apartmentId is assigned
-  phone: text("phone"),
-  // User's phone number
-  // OAuth fields
-  email: text("email").unique(),
-  googleId: text("google_id").unique(),
-  profilePicture: text("profile_picture"),
-  authProvider: text("auth_provider").default("local").notNull()
-  // 'local' or 'google'
-});
-var towers = pgTable("towers", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull()
-});
-var apartments = pgTable("apartments", {
-  id: serial("id").primaryKey(),
-  number: text("number").notNull(),
-  towerId: integer("tower_id").notNull(),
-  floor: integer("floor").notNull(),
-  type: text("type").notNull(),
-  // "2BHK" or "3BHK"
-  ownerName: text("owner_name"),
-  status: text("status").notNull().default("OCCUPIED"),
-  // "AVAILABLE_RENT", "AVAILABLE_SALE", "OCCUPIED"
-  monthlyRent: numeric("monthly_rent"),
-  salePrice: numeric("sale_price"),
-  contactNumber: text("contact_number")
-});
-var amenities = pgTable("amenities", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  type: text("type").notNull(),
-  // "GYM", "GUEST_HOUSE", "CLUBHOUSE"
-  description: text("description"),
-  maxCapacity: integer("max_capacity"),
-  imageUrl: text("image_url"),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
-var bookings = pgTable("bookings", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  amenityId: integer("amenity_id").notNull(),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time").notNull(),
-  status: text("status").notNull(),
-  // "PENDING", "APPROVED", "REJECTED"
-  deletedAt: timestamp("deleted_at")
-});
-var notices = pgTable("notices", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  createdBy: integer("created_by").notNull().references(() => users.id),
-  priority: text("priority").notNull().default("NORMAL"),
-  // "HIGH", "NORMAL", "LOW"
-  expiresAt: timestamp("expires_at"),
-  isArchived: boolean("is_archived").default(false).notNull()
-});
-var visitors = pgTable("visitors", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  mobileNumber: text("mobile_number").notNull(),
-  purpose: text("purpose").notNull(),
-  // 'personal', 'delivery', 'service', 'maintenance', 'family', 'other'
-  apartmentId: integer("apartment_id").notNull(),
-  vehicleNumber: text("vehicle_number"),
-  photoUrl: text("photo_url"),
-  entryTime: timestamp("entry_time").defaultNow().notNull(),
-  exitTime: timestamp("exit_time"),
-  status: text("status").default("inside").notNull(),
-  // 'inside', 'checked_out'
-  createdBy: integer("created_by").notNull(),
-  // Guard who logged the entry
-  notes: text("notes"),
-  preApprovedVisitorId: integer("pre_approved_visitor_id")
-  // Link to pre-approval if visitor was pre-approved
-});
-var preApprovedVisitors = pgTable("pre_approved_visitors", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  mobileNumber: text("mobile_number"),
-  purpose: text("purpose").notNull(),
-  apartmentId: integer("apartment_id").notNull(),
-  expectedDate: timestamp("expected_date").notNull(),
-  expectedTimeFrom: text("expected_time_from"),
-  // Store as text like "09:00"
-  expectedTimeTo: text("expected_time_to"),
-  numberOfPersons: integer("number_of_persons").default(1).notNull(),
-  status: text("status").default("pending").notNull(),
-  // 'pending', 'arrived', 'expired', 'cancelled', 'completed'
-  createdBy: integer("created_by").notNull(),
-  // Resident who created the pre-approval
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  notes: text("notes")
-});
-var complaints = pgTable("complaints", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  category: text("category").notNull(),
-  // 'plumbing', 'electrical', 'civil', 'housekeeping', 'security', 'parking', 'noise', 'other'
-  priority: text("priority").default("medium").notNull(),
-  // 'low', 'medium', 'high', 'urgent'
-  status: text("status").default("open").notNull(),
-  // 'open', 'in_progress', 'resolved', 'closed', 'rejected'
-  apartmentId: integer("apartment_id").notNull(),
-  createdBy: integer("created_by").notNull(),
-  assignedTo: integer("assigned_to"),
-  // Admin who's handling it
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  resolvedAt: timestamp("resolved_at"),
-  resolutionNotes: text("resolution_notes")
-});
-var complaintComments = pgTable("complaint_comments", {
-  id: serial("id").primaryKey(),
-  complaintId: integer("complaint_id").notNull(),
-  userId: integer("user_id").notNull(),
-  comment: text("comment").notNull(),
-  isInternal: boolean("is_internal").default(false).notNull(),
-  // Internal notes visible only to admin
-  createdAt: timestamp("created_at").defaultNow().notNull()
-});
-var vehicles = pgTable("vehicles", {
-  id: serial("id").primaryKey(),
-  apartmentId: integer("apartment_id").notNull(),
-  vehicleType: text("vehicle_type").notNull(),
-  // 'car', 'bike', 'scooter', 'other'
-  vehicleNumber: text("vehicle_number").notNull(),
-  makeModel: text("make_model"),
-  color: text("color"),
-  parkingSlot: text("parking_slot"),
-  isPrimary: boolean("is_primary").default(false).notNull(),
-  registeredBy: integer("registered_by").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
-});
-var notifications = pgTable("notifications", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  // User who receives the notification
-  type: text("type").notNull(),
-  // 'booking', 'complaint', 'notice', 'visitor', 'system'
-  title: text("title").notNull(),
-  message: text("message").notNull(),
-  link: text("link"),
-  // URL to navigate to when clicked
-  isRead: boolean("is_read").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
-});
-var insertUserSchema = createInsertSchema(users).omit({ id: true });
-var updateUserSchema = z.object({
-  isAdmin: z.boolean()
-});
-var updateUserRoleSchema = z.object({
-  role: z.enum(["admin", "resident", "guard"])
-});
-var insertApartmentSchema = createInsertSchema(apartments);
-var updateApartmentSchema = z.object({
-  ownerName: z.string().nullable(),
-  status: z.enum(["AVAILABLE_RENT", "AVAILABLE_SALE", "OCCUPIED"]),
-  monthlyRent: z.string().nullable(),
-  salePrice: z.string().nullable(),
-  contactNumber: z.string().nullable()
-});
-var insertBookingSchema = createInsertSchema(bookings).omit({ id: true }).extend({
-  startTime: z.coerce.date(),
-  endTime: z.coerce.date()
-});
-var insertVisitorSchema = createInsertSchema(visitors).omit({
-  id: true,
-  entryTime: true,
-  exitTime: true,
-  status: true
-});
-var checkoutVisitorSchema = z.object({
-  notes: z.string().optional()
-});
-var insertPreApprovedVisitorSchema = createInsertSchema(preApprovedVisitors).omit({
-  id: true,
-  status: true,
-  createdAt: true
-}).extend({
-  expectedDate: z.coerce.date()
-});
-var insertNoticeSchema = createInsertSchema(notices).omit({
-  id: true
-});
-var insertComplaintSchema = createInsertSchema(complaints).omit({
-  id: true,
-  status: true,
-  assignedTo: true,
-  createdAt: true,
-  updatedAt: true,
-  resolvedAt: true,
-  resolutionNotes: true
-});
-var updateComplaintSchema = z.object({
-  status: z.enum(["open", "in_progress", "resolved", "closed", "rejected"]).optional(),
-  assignedTo: z.number().nullable().optional(),
-  resolutionNotes: z.string().optional(),
-  priority: z.enum(["low", "medium", "high", "urgent"]).optional()
-});
-var insertComplaintCommentSchema = createInsertSchema(complaintComments).omit({
-  id: true,
-  createdAt: true
-});
-var updateProfileSchema = z.object({
-  name: z.string().min(1, "Name is required").optional(),
-  email: z.string().email("Invalid email").optional().nullable(),
-  phone: z.string().optional().nullable(),
-  profilePicture: z.string().optional().nullable()
-});
-var changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string()
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"]
-});
-var insertVehicleSchema = createInsertSchema(vehicles).omit({
-  id: true,
-  createdAt: true
-});
-var updateVehicleSchema = z.object({
-  vehicleType: z.enum(["car", "bike", "scooter", "other"]).optional(),
-  vehicleNumber: z.string().min(1).optional(),
-  makeModel: z.string().optional().nullable(),
-  color: z.string().optional().nullable(),
-  parkingSlot: z.string().optional().nullable(),
-  isPrimary: z.boolean().optional()
-});
-var insertAmenitySchema = createInsertSchema(amenities).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
-});
-var updateAmenitySchema = z.object({
-  name: z.string().min(1).optional(),
-  type: z.string().optional(),
-  description: z.string().optional().nullable(),
-  maxCapacity: z.number().optional().nullable(),
-  imageUrl: z.string().optional().nullable(),
-  isActive: z.boolean().optional()
-});
-var insertNotificationSchema = createInsertSchema(notifications).omit({
-  id: true,
-  createdAt: true,
-  isRead: true
-});
-var notificationPreferences = pgTable("notification_preferences", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().unique(),
-  // One preference set per user
-  // In-app notification preferences
-  bookingNotifications: boolean("booking_notifications").default(true).notNull(),
-  complaintNotifications: boolean("complaint_notifications").default(true).notNull(),
-  visitorNotifications: boolean("visitor_notifications").default(true).notNull(),
-  noticeNotifications: boolean("notice_notifications").default(true).notNull(),
-  systemNotifications: boolean("system_notifications").default(true).notNull(),
-  // Email notification preferences (for future email integration)
-  emailBookingNotifications: boolean("email_booking_notifications").default(false).notNull(),
-  emailComplaintNotifications: boolean("email_complaint_notifications").default(false).notNull(),
-  emailVisitorNotifications: boolean("email_visitor_notifications").default(false).notNull(),
-  emailNoticeNotifications: boolean("email_notice_notifications").default(true).notNull(),
-  emailEmergencyNotifications: boolean("email_emergency_notifications").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
-var updateNotificationPreferencesSchema = z.object({
-  bookingNotifications: z.boolean().optional(),
-  complaintNotifications: z.boolean().optional(),
-  visitorNotifications: z.boolean().optional(),
-  noticeNotifications: z.boolean().optional(),
-  systemNotifications: z.boolean().optional(),
-  emailBookingNotifications: z.boolean().optional(),
-  emailComplaintNotifications: z.boolean().optional(),
-  emailVisitorNotifications: z.boolean().optional(),
-  emailNoticeNotifications: z.boolean().optional(),
-  emailEmergencyNotifications: z.boolean().optional()
+var users, towers, apartments, amenities, bookings, notices, visitors, preApprovedVisitors, complaints, complaintComments, vehicles, notifications, insertUserSchema, updateUserSchema, updateUserRoleSchema, insertApartmentSchema, updateApartmentSchema, insertBookingSchema, insertVisitorSchema, checkoutVisitorSchema, insertPreApprovedVisitorSchema, insertNoticeSchema, insertComplaintSchema, updateComplaintSchema, insertComplaintCommentSchema, updateProfileSchema, changePasswordSchema, insertVehicleSchema, updateVehicleSchema, insertAmenitySchema, updateAmenitySchema, insertNotificationSchema, notificationPreferences, updateNotificationPreferencesSchema;
+var init_schema = __esm({
+  "shared/schema.ts"() {
+    "use strict";
+    users = pgTable("users", {
+      id: serial("id").primaryKey(),
+      username: text("username").notNull().unique(),
+      password: text("password"),
+      // Nullable for Google OAuth users
+      isAdmin: boolean("is_admin").default(false).notNull(),
+      // Legacy - use 'role' instead
+      role: text("role").default("resident").notNull(),
+      // 'admin', 'resident', 'guard'
+      name: text("name").notNull(),
+      apartmentId: integer("apartment_id"),
+      residentType: text("resident_type"),
+      // 'OWNER' or 'TENANT' - only set when apartmentId is assigned
+      phone: text("phone"),
+      // User's phone number
+      // OAuth fields
+      email: text("email").unique(),
+      googleId: text("google_id").unique(),
+      profilePicture: text("profile_picture"),
+      authProvider: text("auth_provider").default("local").notNull()
+      // 'local' or 'google'
+    });
+    towers = pgTable("towers", {
+      id: serial("id").primaryKey(),
+      name: text("name").notNull()
+    });
+    apartments = pgTable("apartments", {
+      id: serial("id").primaryKey(),
+      number: text("number").notNull(),
+      towerId: integer("tower_id").notNull(),
+      floor: integer("floor").notNull(),
+      type: text("type").notNull(),
+      // "2BHK" or "3BHK"
+      ownerName: text("owner_name"),
+      status: text("status").notNull().default("OCCUPIED"),
+      // "AVAILABLE_RENT", "AVAILABLE_SALE", "OCCUPIED"
+      monthlyRent: numeric("monthly_rent"),
+      salePrice: numeric("sale_price"),
+      contactNumber: text("contact_number")
+    });
+    amenities = pgTable("amenities", {
+      id: serial("id").primaryKey(),
+      name: text("name").notNull(),
+      type: text("type").notNull(),
+      // "GYM", "GUEST_HOUSE", "CLUBHOUSE"
+      description: text("description"),
+      maxCapacity: integer("max_capacity"),
+      imageUrl: text("image_url"),
+      isActive: boolean("is_active").default(true).notNull(),
+      createdAt: timestamp("created_at").defaultNow().notNull(),
+      updatedAt: timestamp("updated_at").defaultNow().notNull()
+    });
+    bookings = pgTable("bookings", {
+      id: serial("id").primaryKey(),
+      userId: integer("user_id").notNull(),
+      amenityId: integer("amenity_id").notNull(),
+      startTime: timestamp("start_time").notNull(),
+      endTime: timestamp("end_time").notNull(),
+      status: text("status").notNull(),
+      // "PENDING", "APPROVED", "REJECTED"
+      deletedAt: timestamp("deleted_at")
+    });
+    notices = pgTable("notices", {
+      id: serial("id").primaryKey(),
+      title: text("title").notNull(),
+      content: text("content").notNull(),
+      createdAt: timestamp("created_at").defaultNow().notNull(),
+      updatedAt: timestamp("updated_at").defaultNow().notNull(),
+      createdBy: integer("created_by").notNull().references(() => users.id),
+      priority: text("priority").notNull().default("NORMAL"),
+      // "HIGH", "NORMAL", "LOW"
+      expiresAt: timestamp("expires_at"),
+      isArchived: boolean("is_archived").default(false).notNull()
+    });
+    visitors = pgTable("visitors", {
+      id: serial("id").primaryKey(),
+      name: text("name").notNull(),
+      mobileNumber: text("mobile_number").notNull(),
+      purpose: text("purpose").notNull(),
+      // 'personal', 'delivery', 'service', 'maintenance', 'family', 'other'
+      apartmentId: integer("apartment_id").notNull(),
+      vehicleNumber: text("vehicle_number"),
+      photoUrl: text("photo_url"),
+      entryTime: timestamp("entry_time").defaultNow().notNull(),
+      exitTime: timestamp("exit_time"),
+      status: text("status").default("inside").notNull(),
+      // 'inside', 'checked_out'
+      createdBy: integer("created_by").notNull(),
+      // Guard who logged the entry
+      notes: text("notes"),
+      preApprovedVisitorId: integer("pre_approved_visitor_id")
+      // Link to pre-approval if visitor was pre-approved
+    });
+    preApprovedVisitors = pgTable("pre_approved_visitors", {
+      id: serial("id").primaryKey(),
+      name: text("name").notNull(),
+      mobileNumber: text("mobile_number"),
+      purpose: text("purpose").notNull(),
+      apartmentId: integer("apartment_id").notNull(),
+      expectedDate: timestamp("expected_date").notNull(),
+      expectedTimeFrom: text("expected_time_from"),
+      // Store as text like "09:00"
+      expectedTimeTo: text("expected_time_to"),
+      numberOfPersons: integer("number_of_persons").default(1).notNull(),
+      status: text("status").default("pending").notNull(),
+      // 'pending', 'arrived', 'expired', 'cancelled', 'completed'
+      createdBy: integer("created_by").notNull(),
+      // Resident who created the pre-approval
+      createdAt: timestamp("created_at").defaultNow().notNull(),
+      notes: text("notes")
+    });
+    complaints = pgTable("complaints", {
+      id: serial("id").primaryKey(),
+      title: text("title").notNull(),
+      description: text("description").notNull(),
+      category: text("category").notNull(),
+      // 'plumbing', 'electrical', 'civil', 'housekeeping', 'security', 'parking', 'noise', 'other'
+      priority: text("priority").default("medium").notNull(),
+      // 'low', 'medium', 'high', 'urgent'
+      status: text("status").default("open").notNull(),
+      // 'open', 'in_progress', 'resolved', 'closed', 'rejected'
+      apartmentId: integer("apartment_id").notNull(),
+      createdBy: integer("created_by").notNull(),
+      assignedTo: integer("assigned_to"),
+      // Admin who's handling it
+      createdAt: timestamp("created_at").defaultNow().notNull(),
+      updatedAt: timestamp("updated_at").defaultNow().notNull(),
+      resolvedAt: timestamp("resolved_at"),
+      resolutionNotes: text("resolution_notes")
+    });
+    complaintComments = pgTable("complaint_comments", {
+      id: serial("id").primaryKey(),
+      complaintId: integer("complaint_id").notNull(),
+      userId: integer("user_id").notNull(),
+      comment: text("comment").notNull(),
+      isInternal: boolean("is_internal").default(false).notNull(),
+      // Internal notes visible only to admin
+      createdAt: timestamp("created_at").defaultNow().notNull()
+    });
+    vehicles = pgTable("vehicles", {
+      id: serial("id").primaryKey(),
+      apartmentId: integer("apartment_id").notNull(),
+      vehicleType: text("vehicle_type").notNull(),
+      // 'car', 'bike', 'scooter', 'other'
+      vehicleNumber: text("vehicle_number").notNull(),
+      makeModel: text("make_model"),
+      color: text("color"),
+      parkingSlot: text("parking_slot"),
+      isPrimary: boolean("is_primary").default(false).notNull(),
+      registeredBy: integer("registered_by").notNull(),
+      createdAt: timestamp("created_at").defaultNow().notNull()
+    });
+    notifications = pgTable("notifications", {
+      id: serial("id").primaryKey(),
+      userId: integer("user_id").notNull(),
+      // User who receives the notification
+      type: text("type").notNull(),
+      // 'booking', 'complaint', 'notice', 'visitor', 'system'
+      title: text("title").notNull(),
+      message: text("message").notNull(),
+      link: text("link"),
+      // URL to navigate to when clicked
+      isRead: boolean("is_read").default(false).notNull(),
+      createdAt: timestamp("created_at").defaultNow().notNull()
+    });
+    insertUserSchema = createInsertSchema(users).omit({ id: true });
+    updateUserSchema = z.object({
+      isAdmin: z.boolean()
+    });
+    updateUserRoleSchema = z.object({
+      role: z.enum(["admin", "resident", "guard"])
+    });
+    insertApartmentSchema = createInsertSchema(apartments);
+    updateApartmentSchema = z.object({
+      ownerName: z.string().nullable(),
+      status: z.enum(["AVAILABLE_RENT", "AVAILABLE_SALE", "OCCUPIED"]),
+      monthlyRent: z.string().nullable(),
+      salePrice: z.string().nullable(),
+      contactNumber: z.string().nullable()
+    });
+    insertBookingSchema = createInsertSchema(bookings).omit({ id: true }).extend({
+      startTime: z.coerce.date(),
+      endTime: z.coerce.date()
+    });
+    insertVisitorSchema = createInsertSchema(visitors).omit({
+      id: true,
+      entryTime: true,
+      exitTime: true,
+      status: true
+    });
+    checkoutVisitorSchema = z.object({
+      notes: z.string().optional()
+    });
+    insertPreApprovedVisitorSchema = createInsertSchema(preApprovedVisitors).omit({
+      id: true,
+      status: true,
+      createdAt: true
+    }).extend({
+      expectedDate: z.coerce.date()
+    });
+    insertNoticeSchema = createInsertSchema(notices).omit({
+      id: true
+    });
+    insertComplaintSchema = createInsertSchema(complaints).omit({
+      id: true,
+      status: true,
+      assignedTo: true,
+      createdAt: true,
+      updatedAt: true,
+      resolvedAt: true,
+      resolutionNotes: true
+    });
+    updateComplaintSchema = z.object({
+      status: z.enum(["open", "in_progress", "resolved", "closed", "rejected"]).optional(),
+      assignedTo: z.number().nullable().optional(),
+      resolutionNotes: z.string().optional(),
+      priority: z.enum(["low", "medium", "high", "urgent"]).optional()
+    });
+    insertComplaintCommentSchema = createInsertSchema(complaintComments).omit({
+      id: true,
+      createdAt: true
+    });
+    updateProfileSchema = z.object({
+      name: z.string().min(1, "Name is required").optional(),
+      email: z.string().email("Invalid email").optional().nullable(),
+      phone: z.string().optional().nullable(),
+      profilePicture: z.string().optional().nullable()
+    });
+    changePasswordSchema = z.object({
+      currentPassword: z.string().min(1, "Current password is required"),
+      newPassword: z.string().min(6, "Password must be at least 6 characters"),
+      confirmPassword: z.string()
+    }).refine((data) => data.newPassword === data.confirmPassword, {
+      message: "Passwords don't match",
+      path: ["confirmPassword"]
+    });
+    insertVehicleSchema = createInsertSchema(vehicles).omit({
+      id: true,
+      createdAt: true
+    });
+    updateVehicleSchema = z.object({
+      vehicleType: z.enum(["car", "bike", "scooter", "other"]).optional(),
+      vehicleNumber: z.string().min(1).optional(),
+      makeModel: z.string().optional().nullable(),
+      color: z.string().optional().nullable(),
+      parkingSlot: z.string().optional().nullable(),
+      isPrimary: z.boolean().optional()
+    });
+    insertAmenitySchema = createInsertSchema(amenities).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    updateAmenitySchema = z.object({
+      name: z.string().min(1).optional(),
+      type: z.string().optional(),
+      description: z.string().optional().nullable(),
+      maxCapacity: z.number().optional().nullable(),
+      imageUrl: z.string().optional().nullable(),
+      isActive: z.boolean().optional()
+    });
+    insertNotificationSchema = createInsertSchema(notifications).omit({
+      id: true,
+      createdAt: true,
+      isRead: true
+    });
+    notificationPreferences = pgTable("notification_preferences", {
+      id: serial("id").primaryKey(),
+      userId: integer("user_id").notNull().unique(),
+      // One preference set per user
+      // In-app notification preferences
+      bookingNotifications: boolean("booking_notifications").default(true).notNull(),
+      complaintNotifications: boolean("complaint_notifications").default(true).notNull(),
+      visitorNotifications: boolean("visitor_notifications").default(true).notNull(),
+      noticeNotifications: boolean("notice_notifications").default(true).notNull(),
+      systemNotifications: boolean("system_notifications").default(true).notNull(),
+      // Email notification preferences (for future email integration)
+      emailBookingNotifications: boolean("email_booking_notifications").default(false).notNull(),
+      emailComplaintNotifications: boolean("email_complaint_notifications").default(false).notNull(),
+      emailVisitorNotifications: boolean("email_visitor_notifications").default(false).notNull(),
+      emailNoticeNotifications: boolean("email_notice_notifications").default(true).notNull(),
+      emailEmergencyNotifications: boolean("email_emergency_notifications").default(true).notNull(),
+      createdAt: timestamp("created_at").defaultNow().notNull(),
+      updatedAt: timestamp("updated_at").defaultNow().notNull()
+    });
+    updateNotificationPreferencesSchema = z.object({
+      bookingNotifications: z.boolean().optional(),
+      complaintNotifications: z.boolean().optional(),
+      visitorNotifications: z.boolean().optional(),
+      noticeNotifications: z.boolean().optional(),
+      systemNotifications: z.boolean().optional(),
+      emailBookingNotifications: z.boolean().optional(),
+      emailComplaintNotifications: z.boolean().optional(),
+      emailVisitorNotifications: z.boolean().optional(),
+      emailNoticeNotifications: z.boolean().optional(),
+      emailEmergencyNotifications: z.boolean().optional()
+    });
+  }
 });
 
 // server/db.ts
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?"
-  );
-}
-var _pool = null;
-var _db = null;
 function getPool() {
   if (!_pool) {
     _pool = new pg.Pool({
@@ -395,416 +384,451 @@ function getDb() {
   }
   return _db;
 }
-var pool = new Proxy({}, {
-  get(_, prop) {
-    return getPool()[prop];
-  }
-});
-var db = new Proxy({}, {
-  get(_, prop) {
-    return getDb()[prop];
+var _pool, _db, pool, db;
+var init_db = __esm({
+  "server/db.ts"() {
+    "use strict";
+    init_schema();
+    if (!process.env.DATABASE_URL) {
+      throw new Error(
+        "DATABASE_URL must be set. Did you forget to provision a database?"
+      );
+    }
+    _pool = null;
+    _db = null;
+    pool = new Proxy({}, {
+      get(_, prop) {
+        return getPool()[prop];
+      }
+    });
+    db = new Proxy({}, {
+      get(_, prop) {
+        return getDb()[prop];
+      }
+    });
   }
 });
 
 // server/storage.ts
+var storage_exports = {};
+__export(storage_exports, {
+  DatabaseStorage: () => DatabaseStorage,
+  storage: () => storage
+});
 import { eq, and, lt, isNull, isNotNull, desc, gte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import createMemoryStore from "memorystore";
-var PostgresSessionStore = connectPg(session);
-var MemoryStore = createMemoryStore(session);
-var isProduction = process.env.NODE_ENV === "production";
-var DatabaseStorage = class {
-  sessionStore;
-  constructor() {
-    this.sessionStore = isProduction ? new MemoryStore({
-      checkPeriod: 864e5
-      // prune expired entries every 24h
-    }) : new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true
-    });
-  }
-  async getUser(id) {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-  async getUserByUsername(username) {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-  async getUserByGoogleId(googleId) {
-    const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
-    return user;
-  }
-  async getUserByEmail(email) {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
-  }
-  async createUser(insertUser) {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
-  }
-  // User-Apartment Assignment Methods
-  async assignApartment(userId, apartmentId, residentType) {
-    const [user] = await db.update(users).set({ apartmentId, residentType }).where(eq(users.id, userId)).returning();
-    return user;
-  }
-  async removeApartmentAssignment(userId) {
-    const [user] = await db.update(users).set({ apartmentId: null, residentType: null }).where(eq(users.id, userId)).returning();
-    return user;
-  }
-  async getUsersByApartment(apartmentId) {
-    return await db.select().from(users).where(eq(users.apartmentId, apartmentId));
-  }
-  async getUsersWithoutApartment() {
-    return await db.select().from(users).where(isNull(users.apartmentId));
-  }
-  async getTower(id) {
-    const [tower] = await db.select().from(towers).where(eq(towers.id, id));
-    return tower;
-  }
-  async getTowers() {
-    return await db.select().from(towers);
-  }
-  async getApartments() {
-    return await db.select().from(apartments);
-  }
-  async getApartment(id) {
-    const [apartment] = await db.select().from(apartments).where(eq(apartments.id, id));
-    return apartment;
-  }
-  async getApartmentsByTower(towerId) {
-    return await db.select().from(apartments).where(eq(apartments.towerId, towerId));
-  }
-  async getAmenities() {
-    return await db.select().from(amenities).where(eq(amenities.isActive, true));
-  }
-  async getAllAmenities() {
-    return await db.select().from(amenities);
-  }
-  async getAmenity(id) {
-    const [amenity] = await db.select().from(amenities).where(eq(amenities.id, id));
-    return amenity;
-  }
-  async createAmenity(amenity) {
-    const [newAmenity] = await db.insert(amenities).values(amenity).returning();
-    return newAmenity;
-  }
-  async updateAmenity(id, data) {
-    const [amenity] = await db.update(amenities).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(amenities.id, id)).returning();
-    return amenity;
-  }
-  async deleteAmenity(id) {
-    await db.update(amenities).set({ isActive: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq(amenities.id, id));
-  }
-  async createBooking(booking) {
-    const [newBooking] = await db.insert(bookings).values(booking).returning();
-    return newBooking;
-  }
-  async getBookingsByUser(userId) {
-    return await db.select().from(bookings).where(eq(bookings.userId, userId)).orderBy(bookings.startTime);
-  }
-  async getBookingsByAmenity(amenityId) {
-    return await db.select().from(bookings).where(eq(bookings.amenityId, amenityId));
-  }
-  async updateApartment(id, data) {
-    const [apartment] = await db.update(apartments).set(data).where(eq(apartments.id, id)).returning();
-    return apartment;
-  }
-  async updateUser(id, data) {
-    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
-    return user;
-  }
-  async getAllUsers() {
-    return await db.select().from(users);
-  }
-  async updateBookingStatus(id, status) {
-    const [booking] = await db.update(bookings).set({
-      status,
-      deletedAt: status === "REJECTED" ? /* @__PURE__ */ new Date() : null
-    }).where(eq(bookings.id, id)).returning();
-    return booking;
-  }
-  async getAllBookings() {
-    return await db.select().from(bookings).where(isNull(bookings.deletedAt));
-  }
-  async removeExpiredBookings() {
-    const twentyFourHoursAgo = /* @__PURE__ */ new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-    await db.update(bookings).set({
-      status: "REJECTED",
-      deletedAt: /* @__PURE__ */ new Date()
-    }).where(
-      and(
-        eq(bookings.status, "PENDING"),
-        lt(bookings.startTime, twentyFourHoursAgo),
-        isNull(bookings.deletedAt)
-      )
-    );
-  }
-  async deleteUser(id) {
-    await db.delete(users).where(eq(users.id, id));
-  }
-  async createNotice(notice) {
-    const [newNotice] = await db.insert(notices).values(notice).returning();
-    return newNotice;
-  }
-  async getNotices() {
-    return await db.select().from(notices).where(eq(notices.isArchived, false));
-  }
-  async getActiveNotices() {
-    const now = /* @__PURE__ */ new Date();
-    const allNotices = await db.select().from(notices).where(eq(notices.isArchived, false));
-    return allNotices.filter((n) => !n.expiresAt || new Date(n.expiresAt) > now);
-  }
-  async getArchivedNotices() {
-    return await db.select().from(notices).where(eq(notices.isArchived, true));
-  }
-  async deleteNotice(id) {
-    await db.delete(notices).where(eq(notices.id, id));
-  }
-  async archiveExpiredNotices() {
-    const now = /* @__PURE__ */ new Date();
-    await db.update(notices).set({ isArchived: true }).where(
-      and(
-        isNotNull(notices.expiresAt),
-        lt(notices.expiresAt, now),
-        eq(notices.isArchived, false)
-      )
-    );
-  }
-  // Visitor Methods
-  async createVisitor(visitor) {
-    const [newVisitor] = await db.insert(visitors).values(visitor).returning();
-    return newVisitor;
-  }
-  async getVisitor(id) {
-    const [visitor] = await db.select().from(visitors).where(eq(visitors.id, id));
-    return visitor;
-  }
-  async getActiveVisitors() {
-    return await db.select().from(visitors).where(eq(visitors.status, "inside")).orderBy(desc(visitors.entryTime));
-  }
-  async getAllVisitors() {
-    return await db.select().from(visitors).orderBy(desc(visitors.entryTime));
-  }
-  async getVisitorsByApartment(apartmentId) {
-    return await db.select().from(visitors).where(eq(visitors.apartmentId, apartmentId)).orderBy(desc(visitors.entryTime));
-  }
-  async checkoutVisitor(id, notes) {
-    const updateData = {
-      status: "checked_out",
-      exitTime: /* @__PURE__ */ new Date()
+var PostgresSessionStore, MemoryStore, isProduction, DatabaseStorage, storage;
+var init_storage = __esm({
+  "server/storage.ts"() {
+    "use strict";
+    init_schema();
+    init_db();
+    PostgresSessionStore = connectPg(session);
+    MemoryStore = createMemoryStore(session);
+    isProduction = process.env.NODE_ENV === "production";
+    DatabaseStorage = class {
+      sessionStore;
+      constructor() {
+        this.sessionStore = isProduction ? new MemoryStore({
+          checkPeriod: 864e5
+          // prune expired entries every 24h
+        }) : new PostgresSessionStore({
+          pool,
+          createTableIfMissing: true
+        });
+      }
+      async getUser(id) {
+        const [user] = await db.select().from(users).where(eq(users.id, id));
+        return user;
+      }
+      async getUserByUsername(username) {
+        const [user] = await db.select().from(users).where(eq(users.username, username));
+        return user;
+      }
+      async getUserByGoogleId(googleId) {
+        const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
+        return user;
+      }
+      async getUserByEmail(email) {
+        const [user] = await db.select().from(users).where(eq(users.email, email));
+        return user;
+      }
+      async createUser(insertUser) {
+        const [user] = await db.insert(users).values(insertUser).returning();
+        return user;
+      }
+      // User-Apartment Assignment Methods
+      async assignApartment(userId, apartmentId, residentType) {
+        const [user] = await db.update(users).set({ apartmentId, residentType }).where(eq(users.id, userId)).returning();
+        return user;
+      }
+      async removeApartmentAssignment(userId) {
+        const [user] = await db.update(users).set({ apartmentId: null, residentType: null }).where(eq(users.id, userId)).returning();
+        return user;
+      }
+      async getUsersByApartment(apartmentId) {
+        return await db.select().from(users).where(eq(users.apartmentId, apartmentId));
+      }
+      async getUsersWithoutApartment() {
+        return await db.select().from(users).where(isNull(users.apartmentId));
+      }
+      async getTower(id) {
+        const [tower] = await db.select().from(towers).where(eq(towers.id, id));
+        return tower;
+      }
+      async getTowers() {
+        return await db.select().from(towers);
+      }
+      async getApartments() {
+        return await db.select().from(apartments);
+      }
+      async getApartment(id) {
+        const [apartment] = await db.select().from(apartments).where(eq(apartments.id, id));
+        return apartment;
+      }
+      async getApartmentsByTower(towerId) {
+        return await db.select().from(apartments).where(eq(apartments.towerId, towerId));
+      }
+      async getAmenities() {
+        return await db.select().from(amenities).where(eq(amenities.isActive, true));
+      }
+      async getAllAmenities() {
+        return await db.select().from(amenities);
+      }
+      async getAmenity(id) {
+        const [amenity] = await db.select().from(amenities).where(eq(amenities.id, id));
+        return amenity;
+      }
+      async createAmenity(amenity) {
+        const [newAmenity] = await db.insert(amenities).values(amenity).returning();
+        return newAmenity;
+      }
+      async updateAmenity(id, data) {
+        const [amenity] = await db.update(amenities).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(amenities.id, id)).returning();
+        return amenity;
+      }
+      async deleteAmenity(id) {
+        await db.update(amenities).set({ isActive: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq(amenities.id, id));
+      }
+      async createBooking(booking) {
+        const [newBooking] = await db.insert(bookings).values(booking).returning();
+        return newBooking;
+      }
+      async getBookingsByUser(userId) {
+        return await db.select().from(bookings).where(eq(bookings.userId, userId)).orderBy(bookings.startTime);
+      }
+      async getBookingsByAmenity(amenityId) {
+        return await db.select().from(bookings).where(eq(bookings.amenityId, amenityId));
+      }
+      async updateApartment(id, data) {
+        const [apartment] = await db.update(apartments).set(data).where(eq(apartments.id, id)).returning();
+        return apartment;
+      }
+      async updateUser(id, data) {
+        const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+        return user;
+      }
+      async getAllUsers() {
+        return await db.select().from(users);
+      }
+      async updateBookingStatus(id, status) {
+        const [booking] = await db.update(bookings).set({
+          status,
+          deletedAt: status === "REJECTED" ? /* @__PURE__ */ new Date() : null
+        }).where(eq(bookings.id, id)).returning();
+        return booking;
+      }
+      async getAllBookings() {
+        return await db.select().from(bookings).where(isNull(bookings.deletedAt));
+      }
+      async removeExpiredBookings() {
+        const twentyFourHoursAgo = /* @__PURE__ */ new Date();
+        twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+        await db.update(bookings).set({
+          status: "REJECTED",
+          deletedAt: /* @__PURE__ */ new Date()
+        }).where(
+          and(
+            eq(bookings.status, "PENDING"),
+            lt(bookings.startTime, twentyFourHoursAgo),
+            isNull(bookings.deletedAt)
+          )
+        );
+      }
+      async deleteUser(id) {
+        await db.delete(users).where(eq(users.id, id));
+      }
+      async createNotice(notice) {
+        const [newNotice] = await db.insert(notices).values(notice).returning();
+        return newNotice;
+      }
+      async getNotices() {
+        return await db.select().from(notices).where(eq(notices.isArchived, false));
+      }
+      async getActiveNotices() {
+        const now = /* @__PURE__ */ new Date();
+        const allNotices = await db.select().from(notices).where(eq(notices.isArchived, false));
+        return allNotices.filter((n) => !n.expiresAt || new Date(n.expiresAt) > now);
+      }
+      async getArchivedNotices() {
+        return await db.select().from(notices).where(eq(notices.isArchived, true));
+      }
+      async deleteNotice(id) {
+        await db.delete(notices).where(eq(notices.id, id));
+      }
+      async archiveExpiredNotices() {
+        const now = /* @__PURE__ */ new Date();
+        await db.update(notices).set({ isArchived: true }).where(
+          and(
+            isNotNull(notices.expiresAt),
+            lt(notices.expiresAt, now),
+            eq(notices.isArchived, false)
+          )
+        );
+      }
+      // Visitor Methods
+      async createVisitor(visitor) {
+        const [newVisitor] = await db.insert(visitors).values(visitor).returning();
+        return newVisitor;
+      }
+      async getVisitor(id) {
+        const [visitor] = await db.select().from(visitors).where(eq(visitors.id, id));
+        return visitor;
+      }
+      async getActiveVisitors() {
+        return await db.select().from(visitors).where(eq(visitors.status, "inside")).orderBy(desc(visitors.entryTime));
+      }
+      async getAllVisitors() {
+        return await db.select().from(visitors).orderBy(desc(visitors.entryTime));
+      }
+      async getVisitorsByApartment(apartmentId) {
+        return await db.select().from(visitors).where(eq(visitors.apartmentId, apartmentId)).orderBy(desc(visitors.entryTime));
+      }
+      async checkoutVisitor(id, notes) {
+        const updateData = {
+          status: "checked_out",
+          exitTime: /* @__PURE__ */ new Date()
+        };
+        if (notes) {
+          updateData.notes = notes;
+        }
+        const [visitor] = await db.update(visitors).set(updateData).where(eq(visitors.id, id)).returning();
+        if (visitor.preApprovedVisitorId) {
+          await db.update(preApprovedVisitors).set({ status: "completed" }).where(eq(preApprovedVisitors.id, visitor.preApprovedVisitorId));
+        }
+        return visitor;
+      }
+      async getTodayVisitors() {
+        const today = /* @__PURE__ */ new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return await db.select().from(visitors).where(
+          and(
+            gte(visitors.entryTime, today),
+            lt(visitors.entryTime, tomorrow)
+          )
+        ).orderBy(desc(visitors.entryTime));
+      }
+      // Pre-approved Visitor Methods
+      async createPreApprovedVisitor(visitor) {
+        const [newVisitor] = await db.insert(preApprovedVisitors).values(visitor).returning();
+        return newVisitor;
+      }
+      async getPreApprovedVisitor(id) {
+        const [visitor] = await db.select().from(preApprovedVisitors).where(eq(preApprovedVisitors.id, id));
+        return visitor;
+      }
+      async getPreApprovedVisitorsByApartment(apartmentId) {
+        return await db.select().from(preApprovedVisitors).where(eq(preApprovedVisitors.apartmentId, apartmentId)).orderBy(desc(preApprovedVisitors.expectedDate));
+      }
+      async getPendingPreApprovedVisitors() {
+        const today = /* @__PURE__ */ new Date();
+        today.setHours(0, 0, 0, 0);
+        return await db.select().from(preApprovedVisitors).where(
+          and(
+            eq(preApprovedVisitors.status, "pending"),
+            gte(preApprovedVisitors.expectedDate, today)
+          )
+        ).orderBy(preApprovedVisitors.expectedDate);
+      }
+      async updatePreApprovedVisitorStatus(id, status) {
+        const [visitor] = await db.update(preApprovedVisitors).set({ status }).where(eq(preApprovedVisitors.id, id)).returning();
+        return visitor;
+      }
+      async cancelPreApprovedVisitor(id) {
+        await db.update(preApprovedVisitors).set({ status: "cancelled" }).where(eq(preApprovedVisitors.id, id));
+      }
+      async expireOldPreApprovals() {
+        const today = /* @__PURE__ */ new Date();
+        today.setHours(0, 0, 0, 0);
+        const toExpire = await db.select().from(preApprovedVisitors).where(
+          and(
+            eq(preApprovedVisitors.status, "pending"),
+            lt(preApprovedVisitors.expectedDate, today)
+          )
+        );
+        if (toExpire.length > 0) {
+          await db.update(preApprovedVisitors).set({ status: "expired" }).where(
+            and(
+              eq(preApprovedVisitors.status, "pending"),
+              lt(preApprovedVisitors.expectedDate, today)
+            )
+          );
+        }
+        return toExpire;
+      }
+      // Complaint Methods
+      async createComplaint(complaint) {
+        const [newComplaint] = await db.insert(complaints).values(complaint).returning();
+        return newComplaint;
+      }
+      async getComplaint(id) {
+        const [complaint] = await db.select().from(complaints).where(eq(complaints.id, id));
+        return complaint;
+      }
+      async getAllComplaints() {
+        return await db.select().from(complaints).orderBy(desc(complaints.createdAt));
+      }
+      async getComplaintsByApartment(apartmentId) {
+        return await db.select().from(complaints).where(eq(complaints.apartmentId, apartmentId)).orderBy(desc(complaints.createdAt));
+      }
+      async getComplaintsByUser(userId) {
+        return await db.select().from(complaints).where(eq(complaints.createdBy, userId)).orderBy(desc(complaints.createdAt));
+      }
+      async updateComplaint(id, data) {
+        const updateData = {
+          ...data,
+          updatedAt: /* @__PURE__ */ new Date()
+        };
+        if (data.status === "resolved" || data.status === "closed") {
+          updateData.resolvedAt = /* @__PURE__ */ new Date();
+        }
+        const [complaint] = await db.update(complaints).set(updateData).where(eq(complaints.id, id)).returning();
+        return complaint;
+      }
+      // Complaint Comment Methods
+      async createComplaintComment(comment) {
+        const [newComment] = await db.insert(complaintComments).values(comment).returning();
+        return newComment;
+      }
+      async getComplaintComments(complaintId, includeInternal) {
+        if (includeInternal) {
+          return await db.select().from(complaintComments).where(eq(complaintComments.complaintId, complaintId)).orderBy(complaintComments.createdAt);
+        }
+        return await db.select().from(complaintComments).where(
+          and(
+            eq(complaintComments.complaintId, complaintId),
+            eq(complaintComments.isInternal, false)
+          )
+        ).orderBy(complaintComments.createdAt);
+      }
+      // Vehicle Methods
+      async createVehicle(vehicle) {
+        const [newVehicle] = await db.insert(vehicles).values(vehicle).returning();
+        return newVehicle;
+      }
+      async getVehicle(id) {
+        const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
+        return vehicle;
+      }
+      async getVehiclesByApartment(apartmentId) {
+        return await db.select().from(vehicles).where(eq(vehicles.apartmentId, apartmentId)).orderBy(desc(vehicles.createdAt));
+      }
+      async getAllVehicles() {
+        return await db.select().from(vehicles).orderBy(desc(vehicles.createdAt));
+      }
+      async updateVehicle(id, data) {
+        const [vehicle] = await db.update(vehicles).set(data).where(eq(vehicles.id, id)).returning();
+        return vehicle;
+      }
+      async deleteVehicle(id) {
+        await db.delete(vehicles).where(eq(vehicles.id, id));
+      }
+      // Notification Methods
+      async createNotification(notification) {
+        const [newNotification] = await db.insert(notifications).values(notification).returning();
+        return newNotification;
+      }
+      async getNotificationsByUser(userId) {
+        return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(50);
+      }
+      async getUnreadNotificationCount(userId) {
+        const result = await db.select().from(notifications).where(
+          and(
+            eq(notifications.userId, userId),
+            eq(notifications.isRead, false)
+          )
+        );
+        return result.length;
+      }
+      async markNotificationAsRead(id) {
+        const [notification] = await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id)).returning();
+        return notification;
+      }
+      async markAllNotificationsAsRead(userId) {
+        await db.update(notifications).set({ isRead: true }).where(eq(notifications.userId, userId));
+      }
+      async deleteNotification(id) {
+        await db.delete(notifications).where(eq(notifications.id, id));
+      }
+      async deleteOldNotifications(daysOld) {
+        const cutoffDate = /* @__PURE__ */ new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+        await db.delete(notifications).where(lt(notifications.createdAt, cutoffDate));
+      }
+      // Notification Preferences Methods
+      async getNotificationPreferences(userId) {
+        const [prefs] = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId));
+        return prefs;
+      }
+      async createNotificationPreferences(userId) {
+        const [prefs] = await db.insert(notificationPreferences).values({ userId }).returning();
+        return prefs;
+      }
+      async updateNotificationPreferences(userId, data) {
+        let prefs = await this.getNotificationPreferences(userId);
+        if (!prefs) {
+          prefs = await this.createNotificationPreferences(userId);
+        }
+        const [updated] = await db.update(notificationPreferences).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(notificationPreferences.userId, userId)).returning();
+        return updated;
+      }
+      async shouldSendNotification(userId, type) {
+        const prefs = await this.getNotificationPreferences(userId);
+        if (!prefs) return true;
+        switch (type) {
+          case "booking":
+            return prefs.bookingNotifications;
+          case "complaint":
+            return prefs.complaintNotifications;
+          case "visitor":
+            return prefs.visitorNotifications;
+          case "notice":
+            return prefs.noticeNotifications;
+          case "system":
+            return prefs.systemNotifications;
+          default:
+            return true;
+        }
+      }
     };
-    if (notes) {
-      updateData.notes = notes;
-    }
-    const [visitor] = await db.update(visitors).set(updateData).where(eq(visitors.id, id)).returning();
-    if (visitor.preApprovedVisitorId) {
-      await db.update(preApprovedVisitors).set({ status: "completed" }).where(eq(preApprovedVisitors.id, visitor.preApprovedVisitorId));
-    }
-    return visitor;
+    storage = new DatabaseStorage();
   }
-  async getTodayVisitors() {
-    const today = /* @__PURE__ */ new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return await db.select().from(visitors).where(
-      and(
-        gte(visitors.entryTime, today),
-        lt(visitors.entryTime, tomorrow)
-      )
-    ).orderBy(desc(visitors.entryTime));
-  }
-  // Pre-approved Visitor Methods
-  async createPreApprovedVisitor(visitor) {
-    const [newVisitor] = await db.insert(preApprovedVisitors).values(visitor).returning();
-    return newVisitor;
-  }
-  async getPreApprovedVisitor(id) {
-    const [visitor] = await db.select().from(preApprovedVisitors).where(eq(preApprovedVisitors.id, id));
-    return visitor;
-  }
-  async getPreApprovedVisitorsByApartment(apartmentId) {
-    return await db.select().from(preApprovedVisitors).where(eq(preApprovedVisitors.apartmentId, apartmentId)).orderBy(desc(preApprovedVisitors.expectedDate));
-  }
-  async getPendingPreApprovedVisitors() {
-    const today = /* @__PURE__ */ new Date();
-    today.setHours(0, 0, 0, 0);
-    return await db.select().from(preApprovedVisitors).where(
-      and(
-        eq(preApprovedVisitors.status, "pending"),
-        gte(preApprovedVisitors.expectedDate, today)
-      )
-    ).orderBy(preApprovedVisitors.expectedDate);
-  }
-  async updatePreApprovedVisitorStatus(id, status) {
-    const [visitor] = await db.update(preApprovedVisitors).set({ status }).where(eq(preApprovedVisitors.id, id)).returning();
-    return visitor;
-  }
-  async cancelPreApprovedVisitor(id) {
-    await db.update(preApprovedVisitors).set({ status: "cancelled" }).where(eq(preApprovedVisitors.id, id));
-  }
-  async expireOldPreApprovals() {
-    const today = /* @__PURE__ */ new Date();
-    today.setHours(0, 0, 0, 0);
-    const toExpire = await db.select().from(preApprovedVisitors).where(
-      and(
-        eq(preApprovedVisitors.status, "pending"),
-        lt(preApprovedVisitors.expectedDate, today)
-      )
-    );
-    if (toExpire.length > 0) {
-      await db.update(preApprovedVisitors).set({ status: "expired" }).where(
-        and(
-          eq(preApprovedVisitors.status, "pending"),
-          lt(preApprovedVisitors.expectedDate, today)
-        )
-      );
-    }
-    return toExpire;
-  }
-  // Complaint Methods
-  async createComplaint(complaint) {
-    const [newComplaint] = await db.insert(complaints).values(complaint).returning();
-    return newComplaint;
-  }
-  async getComplaint(id) {
-    const [complaint] = await db.select().from(complaints).where(eq(complaints.id, id));
-    return complaint;
-  }
-  async getAllComplaints() {
-    return await db.select().from(complaints).orderBy(desc(complaints.createdAt));
-  }
-  async getComplaintsByApartment(apartmentId) {
-    return await db.select().from(complaints).where(eq(complaints.apartmentId, apartmentId)).orderBy(desc(complaints.createdAt));
-  }
-  async getComplaintsByUser(userId) {
-    return await db.select().from(complaints).where(eq(complaints.createdBy, userId)).orderBy(desc(complaints.createdAt));
-  }
-  async updateComplaint(id, data) {
-    const updateData = {
-      ...data,
-      updatedAt: /* @__PURE__ */ new Date()
-    };
-    if (data.status === "resolved" || data.status === "closed") {
-      updateData.resolvedAt = /* @__PURE__ */ new Date();
-    }
-    const [complaint] = await db.update(complaints).set(updateData).where(eq(complaints.id, id)).returning();
-    return complaint;
-  }
-  // Complaint Comment Methods
-  async createComplaintComment(comment) {
-    const [newComment] = await db.insert(complaintComments).values(comment).returning();
-    return newComment;
-  }
-  async getComplaintComments(complaintId, includeInternal) {
-    if (includeInternal) {
-      return await db.select().from(complaintComments).where(eq(complaintComments.complaintId, complaintId)).orderBy(complaintComments.createdAt);
-    }
-    return await db.select().from(complaintComments).where(
-      and(
-        eq(complaintComments.complaintId, complaintId),
-        eq(complaintComments.isInternal, false)
-      )
-    ).orderBy(complaintComments.createdAt);
-  }
-  // Vehicle Methods
-  async createVehicle(vehicle) {
-    const [newVehicle] = await db.insert(vehicles).values(vehicle).returning();
-    return newVehicle;
-  }
-  async getVehicle(id) {
-    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
-    return vehicle;
-  }
-  async getVehiclesByApartment(apartmentId) {
-    return await db.select().from(vehicles).where(eq(vehicles.apartmentId, apartmentId)).orderBy(desc(vehicles.createdAt));
-  }
-  async getAllVehicles() {
-    return await db.select().from(vehicles).orderBy(desc(vehicles.createdAt));
-  }
-  async updateVehicle(id, data) {
-    const [vehicle] = await db.update(vehicles).set(data).where(eq(vehicles.id, id)).returning();
-    return vehicle;
-  }
-  async deleteVehicle(id) {
-    await db.delete(vehicles).where(eq(vehicles.id, id));
-  }
-  // Notification Methods
-  async createNotification(notification) {
-    const [newNotification] = await db.insert(notifications).values(notification).returning();
-    return newNotification;
-  }
-  async getNotificationsByUser(userId) {
-    return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(50);
-  }
-  async getUnreadNotificationCount(userId) {
-    const result = await db.select().from(notifications).where(
-      and(
-        eq(notifications.userId, userId),
-        eq(notifications.isRead, false)
-      )
-    );
-    return result.length;
-  }
-  async markNotificationAsRead(id) {
-    const [notification] = await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id)).returning();
-    return notification;
-  }
-  async markAllNotificationsAsRead(userId) {
-    await db.update(notifications).set({ isRead: true }).where(eq(notifications.userId, userId));
-  }
-  async deleteNotification(id) {
-    await db.delete(notifications).where(eq(notifications.id, id));
-  }
-  async deleteOldNotifications(daysOld) {
-    const cutoffDate = /* @__PURE__ */ new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-    await db.delete(notifications).where(lt(notifications.createdAt, cutoffDate));
-  }
-  // Notification Preferences Methods
-  async getNotificationPreferences(userId) {
-    const [prefs] = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId));
-    return prefs;
-  }
-  async createNotificationPreferences(userId) {
-    const [prefs] = await db.insert(notificationPreferences).values({ userId }).returning();
-    return prefs;
-  }
-  async updateNotificationPreferences(userId, data) {
-    let prefs = await this.getNotificationPreferences(userId);
-    if (!prefs) {
-      prefs = await this.createNotificationPreferences(userId);
-    }
-    const [updated] = await db.update(notificationPreferences).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(notificationPreferences.userId, userId)).returning();
-    return updated;
-  }
-  async shouldSendNotification(userId, type) {
-    const prefs = await this.getNotificationPreferences(userId);
-    if (!prefs) return true;
-    switch (type) {
-      case "booking":
-        return prefs.bookingNotifications;
-      case "complaint":
-        return prefs.complaintNotifications;
-      case "visitor":
-        return prefs.visitorNotifications;
-      case "notice":
-        return prefs.noticeNotifications;
-      case "system":
-        return prefs.systemNotifications;
-      default:
-        return true;
-    }
-  }
-};
-var storage = new DatabaseStorage();
+});
 
 // server/auth.ts
-var scryptAsync = promisify(scrypt);
+var auth_exports = {};
+__export(auth_exports, {
+  setupAuth: () => setupAuth
+});
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 async function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
   const buf = await scryptAsync(password, salt, 64);
@@ -932,12 +956,14 @@ function setupAuth(app2) {
     });
   });
 }
-
-// server/routes.ts
-import { ZodError as ZodError5 } from "zod";
-
-// server/routes/visitors.ts
-import { ZodError as ZodError2 } from "zod";
+var scryptAsync;
+var init_auth = __esm({
+  "server/auth.ts"() {
+    "use strict";
+    init_storage();
+    scryptAsync = promisify(scrypt);
+  }
+});
 
 // server/routes/notifications.ts
 import { ZodError } from "zod";
@@ -1084,8 +1110,16 @@ async function notifyApartmentResidents(apartmentId, type, title, message, link,
     console.error("Error notifying apartment residents:", error);
   }
 }
+var init_notifications = __esm({
+  "server/routes/notifications.ts"() {
+    "use strict";
+    init_storage();
+    init_schema();
+  }
+});
 
 // server/routes/visitors.ts
+import { ZodError as ZodError2 } from "zod";
 function registerVisitorRoutes(app2) {
   const isGuardOrAdmin = (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -1298,6 +1332,14 @@ function registerVisitorRoutes(app2) {
     }
   });
 }
+var init_visitors = __esm({
+  "server/routes/visitors.ts"() {
+    "use strict";
+    init_storage();
+    init_schema();
+    init_notifications();
+  }
+});
 
 // server/routes/complaints.ts
 import { ZodError as ZodError3 } from "zod";
@@ -1518,12 +1560,19 @@ function registerComplaintRoutes(app2) {
     }
   });
 }
+var init_complaints = __esm({
+  "server/routes/complaints.ts"() {
+    "use strict";
+    init_storage();
+    init_schema();
+    init_notifications();
+  }
+});
 
 // server/routes/profile.ts
 import { ZodError as ZodError4 } from "zod";
 import { scrypt as scrypt2, randomBytes as randomBytes2, timingSafeEqual as timingSafeEqual2 } from "crypto";
 import { promisify as promisify2 } from "util";
-var scryptAsync2 = promisify2(scrypt2);
 async function hashPassword2(password) {
   const salt = randomBytes2(16).toString("hex");
   const buf = await scryptAsync2(password, salt, 64);
@@ -1684,6 +1733,15 @@ function registerProfileRoutes(app2) {
     }
   });
 }
+var scryptAsync2;
+var init_profile = __esm({
+  "server/routes/profile.ts"() {
+    "use strict";
+    init_storage();
+    init_schema();
+    scryptAsync2 = promisify2(scrypt2);
+  }
+});
 
 // server/routes/reports.ts
 function registerReportRoutes(app2) {
@@ -2156,8 +2214,20 @@ function registerReportRoutes(app2) {
     }
   });
 }
+var init_reports = __esm({
+  "server/routes/reports.ts"() {
+    "use strict";
+    init_storage();
+  }
+});
 
 // server/routes.ts
+var routes_exports = {};
+__export(routes_exports, {
+  registerRoutes: () => registerRoutes
+});
+import { createServer } from "http";
+import { ZodError as ZodError5 } from "zod";
 async function registerRoutes(app2) {
   setupAuth(app2);
   registerVisitorRoutes(app2);
@@ -2515,13 +2585,19 @@ async function registerRoutes(app2) {
   const httpServer = createServer(app2);
   return httpServer;
 }
-
-// server/vite.ts
-import express from "express";
-import fs from "fs";
-import path2, { dirname as dirname2 } from "path";
-import { fileURLToPath as fileURLToPath2 } from "url";
-import { createServer as createViteServer, createLogger } from "vite";
+var init_routes = __esm({
+  "server/routes.ts"() {
+    "use strict";
+    init_auth();
+    init_storage();
+    init_schema();
+    init_visitors();
+    init_complaints();
+    init_profile();
+    init_reports();
+    init_notifications();
+  }
+});
 
 // vite.config.ts
 import { defineConfig } from "vite";
@@ -2530,37 +2606,105 @@ import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 import path, { dirname } from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { fileURLToPath } from "url";
-var __filename = fileURLToPath(import.meta.url);
-var __dirname = dirname(__filename);
-var vite_config_default = defineConfig({
-  plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    themePlugin(),
-    ...process.env.NODE_ENV !== "production" && process.env.REPL_ID !== void 0 ? [
-      await import("@replit/vite-plugin-cartographer").then(
-        (m) => m.cartographer()
-      )
-    ] : []
-  ],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "client", "src"),
-      "@shared": path.resolve(__dirname, "shared")
-    }
-  },
-  root: path.resolve(__dirname, "client"),
-  build: {
-    outDir: path.resolve(__dirname, "dist/public"),
-    emptyOutDir: true
+var __filename, __dirname, vite_config_default;
+var init_vite_config = __esm({
+  async "vite.config.ts"() {
+    "use strict";
+    __filename = fileURLToPath(import.meta.url);
+    __dirname = dirname(__filename);
+    vite_config_default = defineConfig({
+      plugins: [
+        react(),
+        runtimeErrorOverlay(),
+        themePlugin(),
+        ...process.env.NODE_ENV !== "production" && process.env.REPL_ID !== void 0 ? [
+          await import("@replit/vite-plugin-cartographer").then(
+            (m) => m.cartographer()
+          )
+        ] : []
+      ],
+      resolve: {
+        alias: {
+          "@": path.resolve(__dirname, "client", "src"),
+          "@shared": path.resolve(__dirname, "shared")
+        }
+      },
+      root: path.resolve(__dirname, "client"),
+      build: {
+        outDir: path.resolve(__dirname, "dist/public"),
+        emptyOutDir: true
+      }
+    });
   }
 });
 
 // server/vite.ts
+var vite_exports = {};
+__export(vite_exports, {
+  log: () => log,
+  serveStatic: () => serveStatic,
+  setupVite: () => setupVite
+});
+import express from "express";
+import fs from "fs";
+import path2, { dirname as dirname2 } from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+import { createServer as createViteServer, createLogger } from "vite";
 import { nanoid } from "nanoid";
-var __filename2 = fileURLToPath2(import.meta.url);
-var __dirname2 = dirname2(__filename2);
-var viteLogger = createLogger();
+function log(message, source = "express") {
+  const formattedTime = (/* @__PURE__ */ new Date()).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+async function setupVite(app2, server) {
+  const serverOptions = {
+    middlewareMode: true,
+    hmr: { server },
+    allowedHosts: true
+  };
+  const vite = await createViteServer({
+    ...vite_config_default,
+    configFile: false,
+    customLogger: {
+      ...viteLogger,
+      error: (msg, options) => {
+        viteLogger.error(msg, options);
+        process.exit(1);
+      }
+    },
+    server: serverOptions,
+    appType: "custom"
+  });
+  app2.use(vite.middlewares);
+  app2.use("*", async (req, res, next) => {
+    const url = req.originalUrl;
+    if (url.startsWith("/api")) {
+      return next();
+    }
+    try {
+      const clientTemplate = path2.resolve(
+        __dirname2,
+        "..",
+        "client",
+        "index.html"
+      );
+      let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      template = template.replace(
+        `src="/src/main.tsx"`,
+        `src="/src/main.tsx?v=${nanoid()}"`
+      );
+      const page = await vite.transformIndexHtml(url, template);
+      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+    } catch (e) {
+      vite.ssrFixStacktrace(e);
+      next(e);
+    }
+  });
+}
 function serveStatic(app2) {
   const distPath = path2.resolve(__dirname2, "public");
   if (!fs.existsSync(distPath)) {
@@ -2573,354 +2717,418 @@ function serveStatic(app2) {
     res.sendFile(path2.resolve(distPath, "index.html"));
   });
 }
-
-// server/routes/towers.ts
-import { Router } from "express";
+var __filename2, __dirname2, viteLogger;
+var init_vite = __esm({
+  async "server/vite.ts"() {
+    "use strict";
+    await init_vite_config();
+    __filename2 = fileURLToPath2(import.meta.url);
+    __dirname2 = dirname2(__filename2);
+    viteLogger = createLogger();
+  }
+});
 
 // server/middleware/auth.ts
-var isAdmin = async (req, res, next) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Unauthorized" });
+var isAdmin;
+var init_auth2 = __esm({
+  "server/middleware/auth.ts"() {
+    "use strict";
+    init_storage();
+    isAdmin = async (req, res, next) => {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      try {
+        const user = await storage.getUser(req.user.id);
+        if (!user || !user.isAdmin) {
+          return res.status(403).json({ error: "Forbidden - Admin access required" });
+        }
+        next();
+      } catch (error) {
+        console.error("Error in isAdmin middleware:", error);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+    };
   }
-  try {
-    const user = await storage.getUser(req.user.id);
-    if (!user || !user.isAdmin) {
-      return res.status(403).json({ error: "Forbidden - Admin access required" });
-    }
-    next();
-  } catch (error) {
-    console.error("Error in isAdmin middleware:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-};
+});
 
 // server/routes/towers.ts
+var towers_exports = {};
+__export(towers_exports, {
+  default: () => towers_default
+});
+import { Router } from "express";
 import { eq as eq2 } from "drizzle-orm";
-var router = Router();
-router.get("/", async (req, res) => {
-  try {
-    const allTowers = await db.select().from(towers);
-    res.json(allTowers);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch towers" });
-  }
-});
-router.post("/", isAdmin, async (req, res) => {
-  try {
-    const { name } = req.body;
-    if (!name) {
-      return res.status(400).json({ error: "Tower name is required" });
-    }
-    const [tower] = await db.insert(towers).values({ name }).returning();
-    res.status(201).json(tower);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create tower" });
-  }
-});
-router.delete("/:id", isAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
-  try {
-    await db.transaction(async (tx) => {
-      await tx.delete(apartments).where(eq2(apartments.towerId, id));
-      const [deletedTower] = await tx.delete(towers).where(eq2(towers.id, id)).returning();
-      if (!deletedTower) {
-        throw new Error("Tower not found");
+var router, towers_default;
+var init_towers = __esm({
+  "server/routes/towers.ts"() {
+    "use strict";
+    init_auth2();
+    init_schema();
+    init_db();
+    router = Router();
+    router.get("/", async (req, res) => {
+      try {
+        const allTowers = await db.select().from(towers);
+        res.json(allTowers);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to fetch towers" });
       }
-      res.json(deletedTower);
     });
-  } catch (error) {
-    if (error instanceof Error && error.message === "Tower not found") {
-      res.status(404).json({ error: "Tower not found" });
-    } else {
-      res.status(500).json({ error: "Failed to delete tower" });
-    }
+    router.post("/", isAdmin, async (req, res) => {
+      try {
+        const { name } = req.body;
+        if (!name) {
+          return res.status(400).json({ error: "Tower name is required" });
+        }
+        const [tower] = await db.insert(towers).values({ name }).returning();
+        res.status(201).json(tower);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to create tower" });
+      }
+    });
+    router.delete("/:id", isAdmin, async (req, res) => {
+      const id = parseInt(req.params.id);
+      try {
+        await db.transaction(async (tx) => {
+          await tx.delete(apartments).where(eq2(apartments.towerId, id));
+          const [deletedTower] = await tx.delete(towers).where(eq2(towers.id, id)).returning();
+          if (!deletedTower) {
+            throw new Error("Tower not found");
+          }
+          res.json(deletedTower);
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message === "Tower not found") {
+          res.status(404).json({ error: "Tower not found" });
+        } else {
+          res.status(500).json({ error: "Failed to delete tower" });
+        }
+      }
+    });
+    router.patch("/:id", isAdmin, async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const { name } = req.body;
+        if (!name) {
+          return res.status(400).json({ error: "Tower name is required" });
+        }
+        const [updatedTower] = await db.update(towers).set({ name }).where(eq2(towers.id, id)).returning();
+        if (!updatedTower) {
+          return res.status(404).json({ error: "Tower not found" });
+        }
+        res.json(updatedTower);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to update tower" });
+      }
+    });
+    towers_default = router;
   }
 });
-router.patch("/:id", isAdmin, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { name } = req.body;
-    if (!name) {
-      return res.status(400).json({ error: "Tower name is required" });
-    }
-    const [updatedTower] = await db.update(towers).set({ name }).where(eq2(towers.id, id)).returning();
-    if (!updatedTower) {
-      return res.status(404).json({ error: "Tower not found" });
-    }
-    res.json(updatedTower);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update tower" });
-  }
-});
-var towers_default = router;
 
 // server/routes/apartments.ts
+var apartments_exports = {};
+__export(apartments_exports, {
+  default: () => apartments_default
+});
 import { Router as Router2 } from "express";
 import { eq as eq3 } from "drizzle-orm";
-var router2 = Router2();
-router2.get("/", async (req, res) => {
-  try {
-    const { towerId } = req.query;
-    let allApartments;
-    if (towerId) {
-      allApartments = await db.select().from(apartments).where(eq3(apartments.towerId, parseInt(towerId)));
-    } else {
-      allApartments = await db.select().from(apartments);
-    }
-    res.json(allApartments);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch apartments" });
+var router2, apartments_default;
+var init_apartments = __esm({
+  "server/routes/apartments.ts"() {
+    "use strict";
+    init_auth2();
+    init_schema();
+    init_db();
+    router2 = Router2();
+    router2.get("/", async (req, res) => {
+      try {
+        const { towerId } = req.query;
+        let allApartments;
+        if (towerId) {
+          allApartments = await db.select().from(apartments).where(eq3(apartments.towerId, parseInt(towerId)));
+        } else {
+          allApartments = await db.select().from(apartments);
+        }
+        res.json(allApartments);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to fetch apartments" });
+      }
+    });
+    router2.post("/", isAdmin, async (req, res) => {
+      try {
+        const {
+          number,
+          towerId,
+          type,
+          floor,
+          monthlyRent,
+          salePrice,
+          status,
+          contactNumber
+        } = req.body;
+        if (!number || !towerId || !type || !floor || !status) {
+          return res.status(400).json({
+            error: "Number, tower ID, type, floor, and status are required"
+          });
+        }
+        const [apartment] = await db.insert(apartments).values({
+          number,
+          towerId,
+          type,
+          floor,
+          monthlyRent: monthlyRent || null,
+          salePrice: salePrice || null,
+          status,
+          contactNumber: contactNumber || null
+        }).returning();
+        res.status(201).json(apartment);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to create apartment" });
+      }
+    });
+    router2.delete("/:id", isAdmin, async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const [deletedApartment] = await db.delete(apartments).where(eq3(apartments.id, id)).returning();
+        if (!deletedApartment) {
+          return res.status(404).json({ error: "Apartment not found" });
+        }
+        res.json(deletedApartment);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to delete apartment" });
+      }
+    });
+    router2.patch("/:id", isAdmin, async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const {
+          number,
+          type,
+          floor,
+          monthlyRent,
+          salePrice,
+          status,
+          contactNumber
+        } = req.body;
+        const [updatedApartment] = await db.update(apartments).set({
+          number,
+          type,
+          floor,
+          monthlyRent: monthlyRent || null,
+          salePrice: salePrice || null,
+          status,
+          contactNumber: contactNumber || null
+        }).where(eq3(apartments.id, id)).returning();
+        if (!updatedApartment) {
+          return res.status(404).json({ error: "Apartment not found" });
+        }
+        res.json(updatedApartment);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to update apartment" });
+      }
+    });
+    apartments_default = router2;
   }
 });
-router2.post("/", isAdmin, async (req, res) => {
-  try {
-    const {
-      number,
-      towerId,
-      type,
-      floor,
-      monthlyRent,
-      salePrice,
-      status,
-      contactNumber
-    } = req.body;
-    if (!number || !towerId || !type || !floor || !status) {
-      return res.status(400).json({
-        error: "Number, tower ID, type, floor, and status are required"
-      });
-    }
-    const [apartment] = await db.insert(apartments).values({
-      number,
-      towerId,
-      type,
-      floor,
-      monthlyRent: monthlyRent || null,
-      salePrice: salePrice || null,
-      status,
-      contactNumber: contactNumber || null
-    }).returning();
-    res.status(201).json(apartment);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create apartment" });
-  }
-});
-router2.delete("/:id", isAdmin, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const [deletedApartment] = await db.delete(apartments).where(eq3(apartments.id, id)).returning();
-    if (!deletedApartment) {
-      return res.status(404).json({ error: "Apartment not found" });
-    }
-    res.json(deletedApartment);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete apartment" });
-  }
-});
-router2.patch("/:id", isAdmin, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const {
-      number,
-      type,
-      floor,
-      monthlyRent,
-      salePrice,
-      status,
-      contactNumber
-    } = req.body;
-    const [updatedApartment] = await db.update(apartments).set({
-      number,
-      type,
-      floor,
-      monthlyRent: monthlyRent || null,
-      salePrice: salePrice || null,
-      status,
-      contactNumber: contactNumber || null
-    }).where(eq3(apartments.id, id)).returning();
-    if (!updatedApartment) {
-      return res.status(404).json({ error: "Apartment not found" });
-    }
-    res.json(updatedApartment);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update apartment" });
-  }
-});
-var apartments_default = router2;
 
 // server/routes/notices.ts
+var notices_exports = {};
+__export(notices_exports, {
+  default: () => notices_default
+});
 import express2 from "express";
 import { isBefore } from "date-fns";
-var router3 = express2.Router();
-var priorityOrder = {
-  HIGH: 3,
-  NORMAL: 2,
-  LOW: 1
-};
-router3.get("/", async (req, res) => {
-  try {
-    const notices2 = await storage.getNotices();
-    notices2.sort((a, b) => {
-      const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
-      if (priorityDiff !== 0) return priorityDiff;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-    res.json(notices2);
-  } catch (error) {
-    console.error("Error fetching notices:", error);
-    res.status(500).json({ error: "Failed to fetch notices" });
-  }
-});
-router3.post("/", async (req, res) => {
-  try {
-    console.log("Received notice creation request:", req.body);
-    console.log("User session:", req.session);
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      console.log("User is not admin");
-      res.status(403).json({ error: "Only admins can create notices" });
-      return;
-    }
-    if (!req.body.title || !req.body.content) {
-      console.log("Missing required fields:", {
-        title: req.body.title,
-        content: req.body.content
-      });
-      res.status(400).json({ error: "Title and content are required" });
-      return;
-    }
-    const expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : null;
-    if (expiresAt && isBefore(expiresAt, /* @__PURE__ */ new Date())) {
-      res.status(400).json({ error: "Expiration date must be in the future" });
-      return;
-    }
-    const now = /* @__PURE__ */ new Date();
-    const noticeData = {
-      title: req.body.title,
-      content: req.body.content,
-      priority: req.body.priority || "NORMAL",
-      expiresAt,
-      createdBy: req.user.id,
-      createdAt: now,
-      updatedAt: now,
-      isArchived: false
+var router3, priorityOrder, notices_default;
+var init_notices = __esm({
+  "server/routes/notices.ts"() {
+    "use strict";
+    init_storage();
+    init_notifications();
+    router3 = express2.Router();
+    priorityOrder = {
+      HIGH: 3,
+      NORMAL: 2,
+      LOW: 1
     };
-    console.log("Creating notice with data:", noticeData);
-    const notice = await storage.createNotice(noticeData);
-    console.log("Notice created successfully:", notice);
-    const allUsers = await storage.getAllUsers();
-    const residents = allUsers.filter((u) => u.role !== "admin" && !u.isAdmin);
-    for (const resident of residents) {
-      await createNotification({
-        userId: resident.id,
-        type: "notice",
-        title: notice.priority === "HIGH" ? "Important Notice" : "New Notice",
-        message: notice.title,
-        link: "/"
-      });
-    }
-    res.json(notice);
-  } catch (error) {
-    console.error("Error creating notice:", error);
-    res.status(500).json({
-      error: "Failed to create notice",
-      details: error instanceof Error ? error.message : "Unknown error"
+    router3.get("/", async (req, res) => {
+      try {
+        const notices2 = await storage.getNotices();
+        notices2.sort((a, b) => {
+          const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+          if (priorityDiff !== 0) return priorityDiff;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        res.json(notices2);
+      } catch (error) {
+        console.error("Error fetching notices:", error);
+        res.status(500).json({ error: "Failed to fetch notices" });
+      }
     });
+    router3.post("/", async (req, res) => {
+      try {
+        console.log("Received notice creation request:", req.body);
+        console.log("User session:", req.session);
+        if (!req.isAuthenticated() || !req.user?.isAdmin) {
+          console.log("User is not admin");
+          res.status(403).json({ error: "Only admins can create notices" });
+          return;
+        }
+        if (!req.body.title || !req.body.content) {
+          console.log("Missing required fields:", {
+            title: req.body.title,
+            content: req.body.content
+          });
+          res.status(400).json({ error: "Title and content are required" });
+          return;
+        }
+        const expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : null;
+        if (expiresAt && isBefore(expiresAt, /* @__PURE__ */ new Date())) {
+          res.status(400).json({ error: "Expiration date must be in the future" });
+          return;
+        }
+        const now = /* @__PURE__ */ new Date();
+        const noticeData = {
+          title: req.body.title,
+          content: req.body.content,
+          priority: req.body.priority || "NORMAL",
+          expiresAt,
+          createdBy: req.user.id,
+          createdAt: now,
+          updatedAt: now,
+          isArchived: false
+        };
+        console.log("Creating notice with data:", noticeData);
+        const notice = await storage.createNotice(noticeData);
+        console.log("Notice created successfully:", notice);
+        const allUsers = await storage.getAllUsers();
+        const residents = allUsers.filter((u) => u.role !== "admin" && !u.isAdmin);
+        for (const resident of residents) {
+          await createNotification({
+            userId: resident.id,
+            type: "notice",
+            title: notice.priority === "HIGH" ? "Important Notice" : "New Notice",
+            message: notice.title,
+            link: "/"
+          });
+        }
+        res.json(notice);
+      } catch (error) {
+        console.error("Error creating notice:", error);
+        res.status(500).json({
+          error: "Failed to create notice",
+          details: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    });
+    router3.get("/archived", async (req, res) => {
+      try {
+        if (!req.isAuthenticated() || !req.user?.isAdmin) {
+          res.status(403).json({ error: "Only admins can view archived notices" });
+          return;
+        }
+        const archivedNotices = await storage.getArchivedNotices();
+        archivedNotices.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        res.json(archivedNotices);
+      } catch (error) {
+        console.error("Error fetching archived notices:", error);
+        res.status(500).json({ error: "Failed to fetch archived notices" });
+      }
+    });
+    router3.delete("/:id", async (req, res) => {
+      try {
+        if (!req.isAuthenticated() || !req.user?.isAdmin) {
+          res.status(403).json({ error: "Only admins can delete notices" });
+          return;
+        }
+        await storage.deleteNotice(parseInt(req.params.id));
+        res.status(204).send();
+      } catch (error) {
+        console.error("Error deleting notice:", error);
+        res.status(500).json({ error: "Failed to delete notice" });
+      }
+    });
+    notices_default = router3;
   }
 });
-router3.get("/archived", async (req, res) => {
-  try {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      res.status(403).json({ error: "Only admins can view archived notices" });
-      return;
-    }
-    const archivedNotices = await storage.getArchivedNotices();
-    archivedNotices.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    res.json(archivedNotices);
-  } catch (error) {
-    console.error("Error fetching archived notices:", error);
-    res.status(500).json({ error: "Failed to fetch archived notices" });
-  }
-});
-router3.delete("/:id", async (req, res) => {
-  try {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      res.status(403).json({ error: "Only admins can delete notices" });
-      return;
-    }
-    await storage.deleteNotice(parseInt(req.params.id));
-    res.status(204).send();
-  } catch (error) {
-    console.error("Error deleting notice:", error);
-    res.status(500).json({ error: "Failed to delete notice" });
-  }
-});
-var notices_default = router3;
 
 // server/api-source/handler.ts
-var app = express3();
-app.use(express3.json());
-app.use(express3.urlencoded({ extended: false }));
-app.use(
-  session2({
-    secret: process.env.SESSION_SECRET || "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 24 * 60 * 60 * 1e3,
-      httpOnly: true,
-      path: "/"
-    },
-    store: storage.sessionStore,
-    name: "ssync.sid"
-  })
-);
-setupAuth(app);
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path3 = req.path;
-  let capturedJsonResponse = void 0;
-  const originalResJson = res.json;
-  res.json = function(bodyJson) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.call(res, bodyJson);
-  };
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path3.startsWith("/api")) {
-      let logLine = `${req.method} ${path3} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+var app = null;
+async function getApp() {
+  if (app) return app;
+  const express3 = (await import("express")).default;
+  const session2 = (await import("express-session")).default;
+  const { registerRoutes: registerRoutes2 } = await Promise.resolve().then(() => (init_routes(), routes_exports));
+  const { serveStatic: serveStatic2 } = await init_vite().then(() => vite_exports);
+  const { storage: storage2 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+  const { setupAuth: setupAuth2 } = await Promise.resolve().then(() => (init_auth(), auth_exports));
+  const towersRouter = (await Promise.resolve().then(() => (init_towers(), towers_exports))).default;
+  const apartmentsRouter = (await Promise.resolve().then(() => (init_apartments(), apartments_exports))).default;
+  const noticesRouter = (await Promise.resolve().then(() => (init_notices(), notices_exports))).default;
+  app = express3();
+  app.use(express3.json());
+  app.use(express3.urlencoded({ extended: false }));
+  app.use(
+    session2({
+      secret: process.env.SESSION_SECRET || "your-secret-key",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+        maxAge: 24 * 60 * 60 * 1e3,
+        httpOnly: true,
+        path: "/"
+      },
+      store: storage2.sessionStore,
+      name: "ssync.sid"
+    })
+  );
+  setupAuth2(app);
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const path3 = req.path;
+    let capturedJsonResponse = void 0;
+    const originalResJson = res.json;
+    res.json = function(bodyJson) {
+      capturedJsonResponse = bodyJson;
+      return originalResJson.call(res, bodyJson);
+    };
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      if (path3.startsWith("/api")) {
+        let logLine = `${req.method} ${path3} ${res.statusCode} in ${duration}ms`;
+        if (capturedJsonResponse) {
+          logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        }
+        if (logLine.length > 80) {
+          logLine = logLine.slice(0, 79) + "\u2026";
+        }
+        console.log(logLine);
       }
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "\u2026";
-      }
-      console.log(logLine);
-    }
+    });
+    next();
   });
-  next();
-});
-app.use("/api/towers", towers_default);
-app.use("/api/apartments", apartments_default);
-app.use("/api/notices", notices_default);
-app.use((err, _req, res, _next) => {
-  console.error("Express error:", err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message, error: err.toString() });
-});
-var initialized = false;
+  app.use("/api/towers", towersRouter);
+  app.use("/api/apartments", apartmentsRouter);
+  app.use("/api/notices", noticesRouter);
+  app.use((err, _req, res, _next) => {
+    console.error("Express error:", err);
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message, error: err.toString() });
+  });
+  await registerRoutes2(app);
+  serveStatic2(app);
+  return app;
+}
 async function handler(req, res) {
   try {
-    if (!initialized) {
-      await registerRoutes(app);
-      serveStatic(app);
-      initialized = true;
-    }
+    const expressApp = await getApp();
     return new Promise((resolve, reject) => {
-      app(req, res, (err) => {
+      expressApp(req, res, (err) => {
         if (err) {
           console.error("Handler error:", err);
           reject(err);
