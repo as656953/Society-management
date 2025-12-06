@@ -8,15 +8,41 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create pool with SSL for Supabase connection
-export const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
+// Lazy initialization for serverless
+let _pool: pg.Pool | null = null;
+let _db: ReturnType<typeof drizzle> | null = null;
+
+function getPool(): pg.Pool {
+  if (!_pool) {
+    _pool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+      max: 1,
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 10000,
+    });
+  }
+  return _pool;
+}
+
+function getDb() {
+  if (!_db) {
+    _db = drizzle(getPool(), { schema });
+  }
+  return _db;
+}
+
+// Export getters for lazy initialization
+export const pool = new Proxy({} as pg.Pool, {
+  get(_, prop) {
+    return (getPool() as any)[prop];
   },
-  max: 1, // Limit connections for serverless
-  idleTimeoutMillis: 20000,
-  connectionTimeoutMillis: 10000,
 });
 
-export const db = drizzle(pool, { schema });
+export const db = new Proxy({} as ReturnType<typeof drizzle>, {
+  get(_, prop) {
+    return (getDb() as any)[prop];
+  },
+});

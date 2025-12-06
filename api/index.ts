@@ -1,104 +1,111 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import express, { type Request, Response, NextFunction } from 'express';
-import { registerRoutes } from '../server/routes';
-import { serveStatic } from '../server/vite';
-import session from 'express-session';
-import { storage } from '../server/storage';
-import { setupAuth } from '../server/auth';
-import towersRouter from '../server/routes/towers';
-import apartmentsRouter from '../server/routes/apartments';
-import noticesRouter from '../server/routes/notices';
 
-const app = express();
+// Vercel serverless handler with error boundary
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  try {
+    // Lazy import to catch any initialization errors
+    const express = (await import('express')).default;
+    const session = (await import('express-session')).default;
+    const { registerRoutes } = await import('../server/routes');
+    const { serveStatic } = await import('../server/vite');
+    const { storage } = await import('../server/storage');
+    const { setupAuth } = await import('../server/auth');
+    const towersRouter = (await import('../server/routes/towers')).default;
+    const apartmentsRouter = (await import('../server/routes/apartments')).default;
+    const noticesRouter = (await import('../server/routes/notices')).default;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+    const app = express();
 
-// Session middleware setup
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      path: '/',
-    },
-    store: storage.sessionStore,
-    name: 'ssync.sid',
-  })
-);
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: false }));
 
-// Setup authentication after session middleware
-setupAuth(app);
+    // Session middleware setup
+    app.use(
+      session({
+        secret: process.env.SESSION_SECRET || 'your-secret-key',
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+          maxAge: 24 * 60 * 60 * 1000,
+          httpOnly: true,
+          path: '/',
+        },
+        store: storage.sessionStore,
+        name: 'ssync.sid',
+      })
+    );
 
-// Request logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+    // Setup authentication after session middleware
+    setupAuth(app);
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+    // Request logging middleware
+    app.use((req, res, next) => {
+      const start = Date.now();
+      const path = req.path;
+      let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    if (path.startsWith('/api')) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+      const originalResJson = res.json;
+      res.json = function (bodyJson: any, ...args: any[]) {
+        capturedJsonResponse = bodyJson;
+        return originalResJson.apply(res, [bodyJson, ...args]);
+      };
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + '…';
-      }
+      res.on('finish', () => {
+        const duration = Date.now() - start;
+        if (path.startsWith('/api')) {
+          let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+          if (capturedJsonResponse) {
+            logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+          }
 
-      console.log(logLine);
-    }
-  });
+          if (logLine.length > 80) {
+            logLine = logLine.slice(0, 79) + '…';
+          }
 
-  next();
-});
+          console.log(logLine);
+        }
+      });
 
-app.use('/api/towers', towersRouter);
-app.use('/api/apartments', apartmentsRouter);
-app.use('/api/notices', noticesRouter);
+      next();
+    });
 
-// Error handler
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  res.status(status).json({ message });
-});
+    app.use('/api/towers', towersRouter);
+    app.use('/api/apartments', apartmentsRouter);
+    app.use('/api/notices', noticesRouter);
 
-// Initialize routes
-let routesInitialized = false;
+    // Error handler
+    app.use((err: any, _req: any, res: any, _next: any) => {
+      console.error('Express error:', err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || 'Internal Server Error';
+      res.status(status).json({ message, error: err.toString() });
+    });
 
-async function initializeApp() {
-  if (!routesInitialized) {
+    // Register routes
     await registerRoutes(app);
     serveStatic(app);
-    routesInitialized = true;
-  }
-}
 
-// Vercel serverless handler
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  await initializeApp();
-
-  return new Promise<void>((resolve, reject) => {
-    app(req as any, res as any, (err: any) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
+    // Handle the request
+    return new Promise<void>((resolve, reject) => {
+      app(req as any, res as any, (err: any) => {
+        if (err) {
+          console.error('Handler error:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
     });
-  });
+  } catch (error: any) {
+    console.error('Initialization error:', error);
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
+      error: 'Server initialization failed',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }));
+  }
 }
