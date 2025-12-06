@@ -1,5 +1,5 @@
 import express from "express";
-import { DatabaseStorage } from "./storage";
+import { DatabaseStorage } from "./storage.js";
 import { Notice } from "@shared/schema";
 import { SessionData } from "express-session";
 

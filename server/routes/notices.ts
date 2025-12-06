@@ -1,7 +1,7 @@
 import express from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { isBefore } from "date-fns";
-import { createNotification } from "./notifications";
+import { createNotification } from "./notifications.js";
 
 const router = express.Router();
 

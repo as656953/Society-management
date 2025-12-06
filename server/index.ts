@@ -1,13 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { setupScheduledTasks } from "./tasks";
-import towersRouter from "./routes/towers";
-import apartmentsRouter from "./routes/apartments";
-import noticesRouter from "./routes/notices";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
+import { setupScheduledTasks } from "./tasks.js";
+import towersRouter from "./routes/towers.js";
+import apartmentsRouter from "./routes/apartments.js";
+import noticesRouter from "./routes/notices.js";
 import session from "express-session";
-import { storage } from "./storage";
-import { setupAuth } from "./auth";
+import { storage } from "./storage.js";
+import { setupAuth } from "./auth.js";
 
 const app = express();
 
