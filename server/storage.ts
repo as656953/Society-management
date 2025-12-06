@@ -41,8 +41,23 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import createMemoryStore from "memorystore";
 
-const PostgresSessionStore = connectPg(session);
-const MemoryStore = createMemoryStore(session);
+// Lazy initialization for session stores
+let PostgresSessionStore: any = null;
+let MemoryStore: any = null;
+
+function getPostgresSessionStore() {
+  if (!PostgresSessionStore) {
+    PostgresSessionStore = connectPg(session);
+  }
+  return PostgresSessionStore;
+}
+
+function getMemoryStore() {
+  if (!MemoryStore) {
+    MemoryStore = createMemoryStore(session);
+  }
+  return MemoryStore;
+}
 
 // Use memory store in production (serverless) to avoid connection pool issues
 const isProduction = process.env.NODE_ENV === 'production';
@@ -157,18 +172,24 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.Store;
+  private _sessionStore: session.Store | null = null;
 
-  constructor() {
-    // Use MemoryStore in production (serverless), PostgreSQL session store locally
-    this.sessionStore = isProduction
-      ? new MemoryStore({
-          checkPeriod: 86400000, // prune expired entries every 24h
-        })
-      : new PostgresSessionStore({
-          pool: pool!,
-          createTableIfMissing: true,
-        });
+  get sessionStore(): session.Store {
+    if (!this._sessionStore) {
+      // Use MemoryStore in production (serverless), PostgreSQL session store locally
+      const MemStore = getMemoryStore();
+      const PgStore = getPostgresSessionStore();
+
+      this._sessionStore = isProduction
+        ? new MemStore({
+            checkPeriod: 86400000, // prune expired entries every 24h
+          })
+        : new PgStore({
+            pool: pool!,
+            createTableIfMissing: true,
+          });
+    }
+    return this._sessionStore;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -847,4 +868,19 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Lazy initialization for storage singleton
+let _storage: DatabaseStorage | null = null;
+
+function getStorage(): DatabaseStorage {
+  if (!_storage) {
+    _storage = new DatabaseStorage();
+  }
+  return _storage;
+}
+
+// Use Proxy for lazy initialization
+export const storage = new Proxy({} as DatabaseStorage, {
+  get(_, prop) {
+    return (getStorage() as any)[prop];
+  },
+});
