@@ -35,13 +35,17 @@ import {
   towers,
   type Tower,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, and, lt, isNull, isNotNull, desc, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { pool } from "./db";
+import createMemoryStore from "memorystore";
 
 const PostgresSessionStore = connectPg(session);
+const MemoryStore = createMemoryStore(session);
+
+// Use memory store in production (serverless), PostgreSQL locally
+const isProduction = process.env.NODE_ENV === 'production';
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -156,10 +160,15 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
-    });
+    // Use MemoryStore in production (serverless), PostgreSQL session store locally
+    this.sessionStore = isProduction
+      ? new MemoryStore({
+          checkPeriod: 86400000, // prune expired entries every 24h
+        })
+      : new PostgresSessionStore({
+          pool: pool!,
+          createTableIfMissing: true,
+        });
   }
 
   async getUser(id: number): Promise<User | undefined> {
