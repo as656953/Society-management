@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { IncomingMessage, ServerResponse } from 'http';
 import express, { type Request, Response, NextFunction } from 'express';
 import { registerRoutes } from '../server/routes';
 import { serveStatic } from '../server/vite';
@@ -89,15 +89,15 @@ async function initializeApp() {
 }
 
 // Vercel serverless handler
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
   await initializeApp();
 
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     app(req as any, res as any, (err: any) => {
       if (err) {
         reject(err);
       } else {
-        resolve(undefined);
+        resolve();
       }
     });
   });
