@@ -11,13 +11,14 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     const { towerId } = req.query;
-    let query = db.select().from(apartments);
 
+    let allApartments;
     if (towerId) {
-      query = query.where(eq(apartments.towerId, parseInt(towerId as string)));
+      allApartments = await db.select().from(apartments).where(eq(apartments.towerId, parseInt(towerId as string)));
+    } else {
+      allApartments = await db.select().from(apartments);
     }
 
-    const allApartments = await query;
     res.json(allApartments);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch apartments" });

@@ -2,8 +2,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Booking, Amenity, User } from "@shared/schema";
-import { format } from "date-fns";
+import { Booking, Amenity, User, Apartment, Tower } from "@shared/schema";
+import { format, differenceInMinutes, differenceInHours } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Check,
@@ -13,6 +13,8 @@ import {
   Clock,
   User as UserIcon,
   Settings,
+  Building2,
+  Timer,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +77,14 @@ export default function Bookings() {
     queryKey: ["/api/users"],
   });
 
+  const { data: apartments } = useQuery<Apartment[]>({
+    queryKey: ["/api/apartments"],
+  });
+
+  const { data: towers } = useQuery<Tower[]>({
+    queryKey: ["/api/towers"],
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({
       bookingId,
@@ -118,9 +128,39 @@ export default function Bookings() {
     );
   };
 
-  const getUserName = (userId: number) => {
+  const getUserInfo = (userId: number) => {
     const user = users?.find((u) => u.id === userId);
-    return user ? `${user.name} (${user.username})` : "Unknown User";
+    if (!user) return { name: "Unknown User", username: "", apartment: "" };
+
+    let apartmentInfo = "";
+    if (user.apartmentId) {
+      const apartment = apartments?.find((a) => a.id === user.apartmentId);
+      if (apartment) {
+        const tower = towers?.find((t) => t.id === apartment.towerId);
+        apartmentInfo = tower
+          ? `${tower.name} - ${apartment.number}`
+          : apartment.number;
+      }
+    }
+
+    return {
+      name: user.name,
+      username: user.username,
+      apartment: apartmentInfo,
+    };
+  };
+
+  const formatDuration = (startTime: Date, endTime: Date) => {
+    const totalMinutes = differenceInMinutes(endTime, startTime);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours === 0) {
+      return `${minutes} min`;
+    } else if (minutes === 0) {
+      return `${hours} hr`;
+    }
+    return `${hours} hr ${minutes} min`;
   };
 
   // Filter out rejected bookings as they will be automatically hidden by the backend
@@ -208,15 +248,22 @@ export default function Bookings() {
                       <motion.div
                         key={booking.id}
                         variants={itemVariants}
-                        className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border rounded-xl bg-card hover:shadow-lg transition-all duration-300 gap-4 relative overflow-hidden"
+                        whileHover={{ scale: 1.01, y: -2 }}
+                        className="group border rounded-xl bg-card hover:shadow-lg transition-all duration-300 relative overflow-hidden"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="space-y-4 w-full sm:flex-1 relative">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                            <h3 className="font-semibold text-lg group-hover:text-primary transition-colors duration-300">
-                              {getAmenityName(booking.amenityId)}
-                            </h3>
+
+                        {/* Header with Amenity Name and Status */}
+                        <div className="px-4 sm:px-6 py-4 border-b bg-gradient-to-r from-muted/30 to-transparent relative">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-primary/10 rounded-lg">
+                                <Calendar className="h-5 w-5 text-primary" />
+                              </div>
+                              <h3 className="font-semibold text-lg group-hover:text-primary transition-colors duration-300">
+                                {getAmenityName(booking.amenityId)}
+                              </h3>
+                            </div>
                             <Badge
                               variant={
                                 booking.status === "APPROVED"
@@ -226,7 +273,7 @@ export default function Bookings() {
                                   : "destructive"
                               }
                               className={cn(
-                                "uppercase text-xs w-fit",
+                                "uppercase text-xs w-fit px-3 py-1",
                                 booking.status === "APPROVED" &&
                                   "bg-green-100 text-green-800 hover:bg-green-200 border-green-200",
                                 booking.status === "PENDING" &&
@@ -238,93 +285,135 @@ export default function Bookings() {
                               {booking.status}
                             </Badge>
                           </div>
-                          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2 group-hover:text-primary transition-colors duration-300">
-                              <UserIcon className="h-4 w-4" />
-                              <span className="truncate">
-                                {getUserName(booking.userId)}
-                              </span>
-                            </div>
-                            <div className="flex items-start gap-2 group-hover:text-primary transition-colors duration-300">
-                              <Calendar className="h-4 w-4 mt-1" />
-                              <div className="space-y-1">
-                                <div>
-                                  <span className="text-foreground font-medium">
-                                    Start:
-                                  </span>{" "}
-                                  {format(new Date(booking.startTime), "PPP")}{" "}
-                                  at {format(new Date(booking.startTime), "p")}
-                                </div>
-                                <div>
-                                  <span className="text-foreground font-medium">
-                                    End:
-                                  </span>{" "}
-                                  {format(new Date(booking.endTime), "PPP")} at{" "}
-                                  {format(new Date(booking.endTime), "p")}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 group-hover:text-primary transition-colors duration-300">
-                              <Clock className="h-4 w-4" />
-                              <span>
-                                <span className="text-foreground font-medium">
-                                  Duration:
-                                </span>{" "}
-                                {format(new Date(booking.startTime), "p")} -{" "}
-                                {format(new Date(booking.endTime), "p")}
-                              </span>
-                            </div>
-                          </div>
                         </div>
 
-                        {booking.status === "PENDING" && (
-                          <div className="flex gap-2 w-full sm:w-auto opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 sm:flex-initial bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-200 relative group"
-                              onClick={() =>
-                                updateStatusMutation.mutate({
-                                  bookingId: booking.id,
-                                  status: "APPROVED",
-                                })
-                              }
-                              disabled={updateStatusMutation.isPending}
-                            >
-                              <span className="absolute inset-0 w-0 bg-green-100 group-hover:w-full transition-all duration-300 rounded-md" />
-                              {updateStatusMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <Check className="h-4 w-4 mr-2 relative" />
-                                  <span className="relative">Approve</span>
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 sm:flex-initial bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200 relative group"
-                              onClick={() =>
-                                updateStatusMutation.mutate({
-                                  bookingId: booking.id,
-                                  status: "REJECTED",
-                                })
-                              }
-                              disabled={updateStatusMutation.isPending}
-                            >
-                              <span className="absolute inset-0 w-0 bg-red-100 group-hover:w-full transition-all duration-300 rounded-md" />
-                              {updateStatusMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <X className="h-4 w-4 mr-2 relative" />
-                                  <span className="relative">Reject</span>
-                                </>
-                              )}
-                            </Button>
+                        {/* Content Section */}
+                        <div className="p-4 sm:p-6 relative">
+                          <div className="space-y-4">
+                            {/* User & Apartment Info Grid */}
+                            {(() => {
+                              const userInfo = getUserInfo(booking.userId);
+                              return (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <motion.div
+                                    className="bg-muted/50 p-3 rounded-lg"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                  >
+                                    <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                      <UserIcon className="h-4 w-4" />
+                                      Requested By
+                                    </span>
+                                    <p className="font-medium mt-1">{userInfo.name}</p>
+                                    <p className="text-xs text-muted-foreground">@{userInfo.username}</p>
+                                  </motion.div>
+                                  <motion.div
+                                    className="bg-muted/50 p-3 rounded-lg"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                  >
+                                    <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                      <Building2 className="h-4 w-4" />
+                                      Apartment
+                                    </span>
+                                    <p className="font-medium mt-1">{userInfo.apartment || "Not Assigned"}</p>
+                                  </motion.div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Date & Time Info Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <motion.div
+                                className="bg-muted/50 p-3 rounded-lg"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <Calendar className="h-4 w-4" />
+                                  Date
+                                </span>
+                                <p className="font-medium mt-1">
+                                  {format(new Date(booking.startTime), "EEE, MMM d, yyyy")}
+                                </p>
+                              </motion.div>
+                              <motion.div
+                                className="bg-muted/50 p-3 rounded-lg"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <Clock className="h-4 w-4" />
+                                  Time Slot
+                                </span>
+                                <p className="font-medium mt-1">
+                                  {format(new Date(booking.startTime), "h:mm a")} - {format(new Date(booking.endTime), "h:mm a")}
+                                </p>
+                              </motion.div>
+                              <motion.div
+                                className="bg-primary/10 p-3 rounded-lg border border-primary/20"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                <span className="text-sm text-primary flex items-center gap-2">
+                                  <Timer className="h-4 w-4" />
+                                  Duration
+                                </span>
+                                <p className="font-semibold text-primary mt-1">
+                                  {formatDuration(new Date(booking.startTime), new Date(booking.endTime))}
+                                </p>
+                              </motion.div>
+                            </div>
                           </div>
-                        )}
+
+                          {/* Action Buttons for Pending */}
+                          {booking.status === "PENDING" && (
+                            <div className="flex gap-2 mt-4 pt-4 border-t">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-200"
+                                onClick={() =>
+                                  updateStatusMutation.mutate({
+                                    bookingId: booking.id,
+                                    status: "APPROVED",
+                                  })
+                                }
+                                disabled={updateStatusMutation.isPending}
+                              >
+                                {updateStatusMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Approve
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200"
+                                onClick={() =>
+                                  updateStatusMutation.mutate({
+                                    bookingId: booking.id,
+                                    status: "REJECTED",
+                                  })
+                                }
+                                disabled={updateStatusMutation.isPending}
+                              >
+                                {updateStatusMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <X className="h-4 w-4 mr-2" />
+                                    Reject
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </motion.div>
                     ))}
                   </motion.div>

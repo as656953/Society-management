@@ -9,13 +9,16 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Users,
+  AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { Booking, Apartment, Amenity, Notice } from "@shared/schema";
+import { Booking, Apartment, Amenity, Notice, User as UserType } from "@shared/schema";
 import { Link } from "wouter";
 import { NoticeCard } from "@/components/NoticeCard";
 import { CreateNoticeDialog } from "@/components/CreateNoticeDialog";
@@ -23,6 +26,13 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+interface Tower {
+  id: number;
+  name: string;
+}
 
 const container = {
   hidden: { opacity: 0 },
@@ -57,11 +67,38 @@ export default function Dashboard() {
     queryKey: ["/api/apartments"],
   });
 
+  const { data: towers } = useQuery<Tower[]>({
+    queryKey: ["/api/towers"],
+  });
+
   const { data: notices, isLoading: isLoadingNotices } = useQuery<Notice[]>({
     queryKey: ["/api/notices"],
   });
 
+  // For admin: get all users to count unassigned
+  const { data: allUsers } = useQuery<UserType[]>({
+    queryKey: ["/api/users"],
+    enabled: user?.isAdmin,
+  });
+
+  // Get residents of user's apartment (family members)
+  const { data: apartmentResidents } = useQuery<UserType[]>({
+    queryKey: ["/api/apartments", user?.apartmentId, "residents"],
+    queryFn: async () => {
+      if (!user?.apartmentId) return [];
+      const res = await fetch(`/api/apartments/${user.apartmentId}/residents`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user?.apartmentId,
+  });
+
   const userApartment = apartments?.find((a) => a.id === user?.apartmentId);
+  const userTower = towers?.find((t) => t.id === userApartment?.towerId);
+  const unassignedUsersCount = allUsers?.filter((u) => !u.apartmentId).length || 0;
+
+  // Family members are other users with same apartment (excluding current user)
+  const familyMembers = apartmentResidents?.filter((r) => r.id !== user?.id) || [];
 
   const getAmenityName = (amenityId: number) => {
     return (
@@ -92,43 +129,57 @@ export default function Dashboard() {
       initial="hidden"
       animate="show"
       variants={container}
-      className="container p-6 space-y-6"
+      className="container px-4 py-4 md:p-6 space-y-4 md:space-y-6"
     >
       {/* Welcome Section */}
       <motion.div
         variants={item}
-        className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+        className="flex flex-col gap-3"
       >
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            Welcome back, {user?.name}
+          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            Welcome back, {user?.name?.split(' ')[0]}
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
             Here's what's happening in your society today
           </p>
         </div>
-        {user?.isAdmin && <CreateNoticeDialog />}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Admin Alert for Unassigned Users */}
+          {user?.isAdmin && unassignedUsersCount > 0 && (
+            <Link href="/users">
+              <Badge
+                variant="destructive"
+                className="px-2 py-1 md:px-3 md:py-1.5 cursor-pointer hover:bg-destructive/90 flex items-center gap-1.5 text-xs md:text-sm"
+              >
+                <AlertTriangle className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                {unassignedUsersCount} unassigned
+              </Badge>
+            </Link>
+          )}
+          {user?.isAdmin && <CreateNoticeDialog />}
+        </div>
       </motion.div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-4 md:gap-6">
         {/* Quick Stats */}
-        <motion.div variants={item} className="grid grid-cols-2 gap-4">
+        <motion.div variants={item} className="grid grid-cols-2 gap-3 md:gap-4">
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-6">
-              <Bell className="h-8 w-8 mb-4 opacity-75" />
-              <div className="text-2xl font-bold mb-1">
+            <CardContent className="p-4 md:p-6">
+              <Bell className="h-6 w-6 md:h-8 md:w-8 mb-2 md:mb-4 opacity-75" />
+              <div className="text-xl md:text-2xl font-bold mb-0.5 md:mb-1">
                 {activeNotices.length}
               </div>
-              <div className="text-blue-100">Active Notices</div>
+              <div className="text-blue-100 text-xs md:text-sm">Active Notices</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <CardContent className="p-6">
-              <Clock className="h-8 w-8 mb-4 opacity-75" />
-              <div className="text-2xl font-bold mb-1">
+            <CardContent className="p-4 md:p-6">
+              <Clock className="h-6 w-6 md:h-8 md:w-8 mb-2 md:mb-4 opacity-75" />
+              <div className="text-xl md:text-2xl font-bold mb-0.5 md:mb-1">
                 {pendingBookings.length}
               </div>
-              <div className="text-purple-100">Pending Bookings</div>
+              <div className="text-purple-100 text-xs md:text-sm">Pending Bookings</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -136,48 +187,72 @@ export default function Dashboard() {
         {/* Apartment Information */}
         <motion.div variants={item}>
           <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-muted/50">
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
+            <CardHeader className="border-b bg-muted/50 p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Building2 className="h-4 w-4 md:h-5 md:w-5" />
                 Your Apartment
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               {isLoadingApartments ? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />
                 </div>
               ) : userApartment ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="text-sm text-muted-foreground">Tower</div>
-                      <div className="font-medium mt-1">
-                        {userApartment.towerId}
+                <div className="space-y-3 md:space-y-4">
+                  <div className="grid grid-cols-2 gap-2 md:gap-4">
+                    <div className="p-2 md:p-3 bg-muted rounded-lg">
+                      <div className="text-xs md:text-sm text-muted-foreground">Tower</div>
+                      <div className="font-medium text-sm md:text-base mt-0.5 md:mt-1">
+                        {userTower?.name || `Tower ${userApartment.towerId}`}
                       </div>
                     </div>
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="text-sm text-muted-foreground">Floor</div>
-                      <div className="font-medium mt-1">
+                    <div className="p-2 md:p-3 bg-muted rounded-lg">
+                      <div className="text-xs md:text-sm text-muted-foreground">Floor</div>
+                      <div className="font-medium text-sm md:text-base mt-0.5 md:mt-1">
                         {userApartment.floor}
                       </div>
                     </div>
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="text-sm text-muted-foreground">
+                    <div className="p-2 md:p-3 bg-muted rounded-lg">
+                      <div className="text-xs md:text-sm text-muted-foreground">
                         Number
                       </div>
-                      <div className="font-medium mt-1">
+                      <div className="font-medium text-sm md:text-base mt-0.5 md:mt-1">
                         {userApartment.number}
                       </div>
                     </div>
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="text-sm text-muted-foreground">Type</div>
-                      <div className="font-medium mt-1">
+                    <div className="p-2 md:p-3 bg-muted rounded-lg">
+                      <div className="text-xs md:text-sm text-muted-foreground">Type</div>
+                      <div className="font-medium text-sm md:text-base mt-0.5 md:mt-1">
                         {userApartment.type}
                       </div>
                     </div>
                   </div>
+                  {/* Family Members Section */}
+                  {familyMembers.length > 0 && (
+                    <div className="pt-4 border-t">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Family Members</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {familyMembers.map((member) => (
+                          <div
+                            key={member.id}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full"
+                          >
+                            <Avatar className="h-5 w-5">
+                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                {member.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">{member.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-6 text-muted-foreground">
@@ -195,10 +270,10 @@ export default function Dashboard() {
         {/* Notices Section */}
         <motion.div variants={item} className="md:col-span-2">
           <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-muted/50">
-              <CardTitle>Recent Notices</CardTitle>
+            <CardHeader className="border-b bg-muted/50 p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg">Recent Notices</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               {isLoadingNotices ? (
                 <div className="space-y-4">
                   <Skeleton className="h-24 w-full" />
@@ -217,9 +292,9 @@ export default function Dashboard() {
                         if (aExpired !== bExpired) return aExpired ? 1 : -1;
 
                         // Then by priority
-                        const priorityOrder = { HIGH: 3, NORMAL: 2, LOW: 1 };
+                        const priorityOrder: Record<string, number> = { HIGH: 3, NORMAL: 2, LOW: 1 };
                         const priorityDiff =
-                          priorityOrder[b.priority] - priorityOrder[a.priority];
+                          (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
                         if (priorityDiff !== 0) return priorityDiff;
 
                         // Finally by creation date
@@ -246,11 +321,11 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <motion.div variants={item}>
           <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-muted/50">
-              <CardTitle>Quick Actions</CardTitle>
+            <CardHeader className="border-b bg-muted/50 p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg">Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
+            <CardContent className="p-4 md:p-6">
+              <div className="space-y-3 md:space-y-4">
                 <Link href="/amenities">
                   <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
                     <Calendar className="mr-2 h-4 w-4" />
@@ -265,6 +340,15 @@ export default function Dashboard() {
                     <ArrowRight className="ml-2 h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Button>
                 </Link>
+                {user?.apartmentId && (
+                  <Link href="/complaints">
+                    <Button variant="outline" className="w-full group text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300">
+                      <AlertCircle className="mr-2 h-4 w-4" />
+                      File Complaint
+                      <ArrowRight className="ml-2 h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Button>
+                  </Link>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -273,10 +357,10 @@ export default function Dashboard() {
         {/* Recent Bookings */}
         <motion.div variants={item}>
           <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-muted/50">
-              <CardTitle>Recent Bookings</CardTitle>
+            <CardHeader className="border-b bg-muted/50 p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg">Recent Bookings</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               {isLoadingBookings ? (
                 <div className="space-y-4">
                   <Skeleton className="h-20 w-full" />

@@ -55,7 +55,7 @@ router.delete("/:id", isAdmin, async (req, res) => {
       res.json(deletedTower);
     });
   } catch (error) {
-    if (error.message === "Tower not found") {
+    if (error instanceof Error && error.message === "Tower not found") {
       res.status(404).json({ error: "Tower not found" });
     } else {
       res.status(500).json({ error: "Failed to delete tower" });
