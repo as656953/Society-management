@@ -34,7 +34,7 @@ import {
   type UpdateNotificationPreferences,
   towers,
   type Tower,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db, pool } from "./db.js";
 import { eq, and, lt, isNull, isNotNull, desc, gte, lte } from "drizzle-orm";
 import session from "express-session";

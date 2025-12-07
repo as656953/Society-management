@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage.js";
-import { insertVisitorSchema, checkoutVisitorSchema, insertPreApprovedVisitorSchema } from "@shared/schema";
+import { insertVisitorSchema, checkoutVisitorSchema, insertPreApprovedVisitorSchema } from "../../shared/schema.js";
 import { ZodError } from "zod";
 import { notifyApartmentResidents, createNotification } from "./notifications.js";
 

@@ -1,7 +1,7 @@
 import { Express } from "express";
 import { storage } from "../storage.js";
-import type { InsertNotification } from "@shared/schema";
-import { updateNotificationPreferencesSchema } from "@shared/schema";
+import type { InsertNotification } from "../../shared/schema.js";
+import { updateNotificationPreferencesSchema } from "../../shared/schema.js";
 import { ZodError } from "zod";
 
 export function registerNotificationRoutes(app: Express) {

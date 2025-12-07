@@ -9,7 +9,7 @@ import {
   updateUserRoleSchema,
   insertAmenitySchema,
   updateAmenitySchema,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { ZodError } from "zod";
 import { registerVisitorRoutes } from "./routes/visitors.js";
 import { registerComplaintRoutes } from "./routes/complaints.js";

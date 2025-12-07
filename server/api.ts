@@ -1,6 +1,6 @@
 import express from "express";
 import { DatabaseStorage } from "./storage.js";
-import { Notice } from "@shared/schema";
+import { Notice } from "../shared/schema.js";
 import { SessionData } from "express-session";
 
 declare module "express-session" {
