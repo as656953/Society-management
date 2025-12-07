@@ -353,3 +353,38 @@ export const updateNotificationPreferencesSchema = z.object({
 
 export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
 export type UpdateNotificationPreferences = z.infer<typeof updateNotificationPreferencesSchema>;
+
+// Storage Management - Monthly Cleanup Tracking
+export const cleanupLogs = pgTable("cleanup_logs", {
+  id: serial("id").primaryKey(),
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(),
+  scheduledDate: timestamp("scheduled_date").notNull(), // 25th of the month
+  reminderStartDate: timestamp("reminder_start_date").notNull(), // 20th of the month
+  status: text("status").default("pending").notNull(), // 'pending', 'reminded', 'downloaded', 'completed', 'skipped'
+
+  // CSV download tracking
+  bookingsCsvDownloaded: boolean("bookings_csv_downloaded").default(false).notNull(),
+  visitorsCsvDownloaded: boolean("visitors_csv_downloaded").default(false).notNull(),
+  complaintsCsvDownloaded: boolean("complaints_csv_downloaded").default(false).notNull(),
+  notificationsCsvDownloaded: boolean("notifications_csv_downloaded").default(false).notNull(),
+  noticesCsvDownloaded: boolean("notices_csv_downloaded").default(false).notNull(),
+
+  // Cleanup statistics
+  bookingsDeleted: integer("bookings_deleted").default(0),
+  visitorsDeleted: integer("visitors_deleted").default(0),
+  complaintsDeleted: integer("complaints_deleted").default(0),
+  notificationsDeleted: integer("notifications_deleted").default(0),
+  noticesDeleted: integer("notices_deleted").default(0),
+
+  // Email tracking
+  emailSentAt: timestamp("email_sent_at"),
+  emailSentTo: text("email_sent_to"),
+
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type CleanupLog = typeof cleanupLogs.$inferSelect;
+export type InsertCleanupLog = typeof cleanupLogs.$inferInsert;

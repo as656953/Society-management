@@ -16,6 +16,7 @@ import {
   AlertCircle,
   BarChart3,
   ChevronDown,
+  HardDrive,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -156,6 +157,12 @@ export default function Navigation() {
               <DropdownMenuItem className="cursor-pointer">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Reports
+              </DropdownMenuItem>
+            </Link>
+            <Link href="/storage-management">
+              <DropdownMenuItem className="cursor-pointer">
+                <HardDrive className="mr-2 h-4 w-4" />
+                Storage
               </DropdownMenuItem>
             </Link>
           </DropdownMenuContent>
@@ -301,6 +308,12 @@ export default function Navigation() {
             <Button variant="ghost" size="sm" className="w-full justify-start h-9">
               <BarChart3 className="mr-2 h-4 w-4" />
               <span className="text-sm">Reports</span>
+            </Button>
+          </Link>
+          <Link href="/storage-management" onClick={() => setOpen(false)}>
+            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+              <HardDrive className="mr-2 h-4 w-4" />
+              <span className="text-sm">Storage</span>
             </Button>
           </Link>
         </>
