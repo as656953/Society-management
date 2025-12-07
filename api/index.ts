@@ -31,7 +31,7 @@ async function getApp(): Promise<express.Express> {
       saveUninitialized: false,
       cookie: {
         secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        sameSite: 'lax', // Use 'lax' for same-site requests to work properly
         maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
         path: '/',
