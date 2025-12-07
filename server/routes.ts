@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth.js";
 import { storage } from "./storage.js";
 import {
   insertBookingSchema,
@@ -19,7 +18,8 @@ import { registerNotificationRoutes, createNotification, notifyAdmins } from "./
 import { registerStorageManagementRoutes } from "./routes/storage-management.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  setupAuth(app);
+  // Note: setupAuth is called from api/index.ts for Vercel, and from server/index.ts for local dev
+  // Do not call setupAuth here to avoid double initialization
   registerVisitorRoutes(app);
   registerComplaintRoutes(app);
   registerProfileRoutes(app);
