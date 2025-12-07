@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage.js";
-import { insertComplaintSchema, updateComplaintSchema, insertComplaintCommentSchema } from "@shared/schema";
+import { insertComplaintSchema, updateComplaintSchema, insertComplaintCommentSchema } from "../../shared/schema.js";
 import { ZodError } from "zod";
 import { createNotification, notifyAdmins } from "./notifications.js";
 

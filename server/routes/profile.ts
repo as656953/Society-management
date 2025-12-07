@@ -1,6 +1,6 @@
 import { Express } from "express";
 import { storage } from "../storage.js";
-import { updateProfileSchema, changePasswordSchema, insertVehicleSchema, updateVehicleSchema } from "@shared/schema";
+import { updateProfileSchema, changePasswordSchema, insertVehicleSchema, updateVehicleSchema } from "../../shared/schema.js";
 import { ZodError } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";

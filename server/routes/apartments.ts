@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { storage } from "../storage.js";
 import { isAdmin } from "../middleware/auth.js";
-import { apartments } from "@shared/schema";
+import { apartments } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { db } from "../db.js";
 
