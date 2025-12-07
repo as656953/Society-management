@@ -13,11 +13,18 @@ function getPool(): pg.Pool {
         "DATABASE_URL must be set. Did you forget to provision a database?"
       );
     }
+
+    const connectionString = process.env.DATABASE_URL;
+
+    // Supabase transaction pooler (port 6543) requires sslmode=require in URL
+    // but ssl: false in Pool options (it handles SSL at the pgbouncer level)
+    const isTransactionPooler = connectionString.includes(':6543');
+
     _pool = new pg.Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false,
-      },
+      connectionString,
+      // For transaction pooler, disable SSL in pg client (pgbouncer handles it)
+      // For direct connections (port 5432), use SSL
+      ssl: isTransactionPooler ? false : { rejectUnauthorized: false },
       max: 1,
       idleTimeoutMillis: 20000,
       connectionTimeoutMillis: 10000,

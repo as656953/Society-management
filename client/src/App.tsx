@@ -19,6 +19,7 @@ import AdminComplaints from "@/pages/admin-complaints";
 import Profile from "@/pages/profile";
 import ManageAmenities from "@/pages/manage-amenities";
 import Reports from "@/pages/reports";
+import StorageManagement from "@/pages/storage-management";
 import { ProtectedRoute } from "./lib/protected-route";
 import Navigation from "@/components/navigation";
 
@@ -45,6 +46,7 @@ function Router() {
       <ProtectedRoute path="/admin/complaints" component={AdminComplaints} isAdminOnly />
       <ProtectedRoute path="/manage-amenities" component={ManageAmenities} isAdminOnly />
       <ProtectedRoute path="/reports" component={Reports} isAdminOnly />
+      <ProtectedRoute path="/storage-management" component={StorageManagement} isAdminOnly />
       <ProtectedRoute path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>

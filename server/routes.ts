@@ -16,6 +16,7 @@ import { registerComplaintRoutes } from "./routes/complaints.js";
 import { registerProfileRoutes } from "./routes/profile.js";
 import { registerReportRoutes } from "./routes/reports.js";
 import { registerNotificationRoutes, createNotification, notifyAdmins } from "./routes/notifications.js";
+import { registerStorageManagementRoutes } from "./routes/storage-management.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -24,6 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerProfileRoutes(app);
   registerReportRoutes(app);
   registerNotificationRoutes(app);
+  registerStorageManagementRoutes(app);
 
   // Get all users (admin only)
   app.get("/api/users", async (req, res) => {
