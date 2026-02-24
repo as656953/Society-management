@@ -315,8 +315,8 @@ export default function Complaints() {
     queryKey: ["/api/complaints/my"],
   });
 
-  // Check if user has an apartment assigned
-  if (!user?.apartmentId) {
+  // Check if user has an apartment assigned (admins can access without apartment)
+  if (!user?.apartmentId && !user?.isAdmin) {
     return (
       <div className="container p-6">
         <Card className="border-destructive">

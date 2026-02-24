@@ -245,7 +245,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all apartments
-  app.get("/api/apartments", async (_req, res) => {
+  app.get("/api/apartments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
     const apartments = await storage.getApartments();
     res.json(apartments);
   });
@@ -279,6 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get specific amenity
   app.get("/api/amenities/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
     const amenity = await storage.getAmenity(parseInt(req.params.id));
     if (!amenity) return res.status(404).send("Amenity not found");
     res.json(amenity);

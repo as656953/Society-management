@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Booking, Amenity, User, Apartment, Tower } from "@shared/schema";
-import { format, differenceInMinutes, differenceInHours } from "date-fns";
+import { format, differenceInMinutes, differenceInDays } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Check,
@@ -153,13 +153,15 @@ export default function Bookings() {
   const formatDuration = (startTime: Date, endTime: Date) => {
     const totalMinutes = differenceInMinutes(endTime, startTime);
     const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+    const days = differenceInDays(endTime, startTime);
 
-    if (hours === 0) {
-      return `${minutes} min`;
-    } else if (minutes === 0) {
-      return `${hours} hr`;
+    if (days >= 1) {
+      return `${days} day${days > 1 ? 's' : ''}`;
     }
+
+    const minutes = totalMinutes % 60;
+    if (hours === 0) return `${minutes} min`;
+    if (minutes === 0) return `${hours} hr`;
     return `${hours} hr ${minutes} min`;
   };
 
