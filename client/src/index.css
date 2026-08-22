@@ -125,8 +125,6 @@
   }
 }
 
-@layer components {
-  .container {
-    @apply max-w-full;
-  }
-}
+/* The .container override that forced max-width:100% was removed here. It
+   defeated the container config in tailwind.config.ts, so content stretched
+   edge-to-edge on large displays. The 2xl:1400px cap now applies. */
