@@ -39,15 +39,20 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       // Passport does not catch rejections from an async verify callback, so an
       // unhandled throw here (e.g. a database timeout) takes down the process.
+      // Resolve the outcome inside the try, but call done() outside it: a
+      // synchronous throw from downstream would otherwise be caught here and
+      // fire done() a second time on an already-succeeded strategy.
+      let result: SelectUser | false;
       try {
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false);
-        }
-        return done(null, user);
+        result =
+          user && (await comparePasswords(password, user.password))
+            ? user
+            : false;
       } catch (err) {
         return done(err as Error);
       }
+      return done(null, result);
     })
   );
 
@@ -117,8 +122,18 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    // Runs on every authenticated request. Passport does not catch rejections
+    // from an async callback, so an unhandled throw here (a pool timeout, for
+    // instance) takes the whole process down.
+    try {
+      const user = await storage.getUser(id);
+      // `false` clears the session and yields a clean 401. Passing `undefined`
+      // makes passport raise "Failed to deserialize user out of session",
+      // which 500s on every subsequent request instead.
+      done(null, user || false);
+    } catch (err) {
+      done(err as Error);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
