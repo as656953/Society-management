@@ -96,6 +96,42 @@ Credentials were delivered in chat, not stored here.
 
 ---
 
+## 2026-08-22 (later) — Review pass and Phase 0/1 execution
+
+Six review voices (CEO, engineering, design, DX, code review, plus an adversarial
+Codex pass) ran against a professionalization plan. They corrected three claims made
+in this file and invalidated the plan's premise. Full plan and review report:
+`~/.claude/plans/hey-claude-this-is-curried-hopper.md`.
+
+**Corrections to the entry above.** The "low-risk, localhost only" assessment of the
+leaked credentials was **wrong** — only `HEAD:.env` had been checked, not history.
+The initial commit held a live *remote* Render Postgres credential, and both
+`db/*.sql` dumps held 2 real password hashes and 101 real phone numbers, all public.
+
+**Done:**
+- Purged `.env` and `db/` from all 72 commits with `git-filter-repo` and force-pushed.
+  Verified zero occurrences of the credential or the dumps in published history.
+  Mirror backup at `~/Desktop/Personal/society-management-backup-*.git`.
+- Pushed the previously-unpushed docs and tooling. **The public repo had no README
+  until now** — every deliverable of the prior session existed only on disk.
+- Sanitized CLAUDE.md: it had been publishing the Supabase project ref, the RLS
+  posture, and every open vulnerability with line numbers. Fixed its four factual
+  errors too.
+- **Recovered the orphaned design system.** `client/tailwind.config.js` held the real
+  typography (Plus Jakarta Sans / Space Grotesk / Outfit) and was never loaded, so
+  the app rendered in the system font and `font-display`/`font-heading` emitted
+  nothing in 21 places. Merged into the root config, fonts now confirmed rendering.
+- Removed the `.container` max-width override, added `<title>`, removed
+  `maximum-scale=1`, deduped the chart tokens, converted plugins to ESM imports.
+- Fixed `deserializeUser` crashing the process — **caught live**, it killed the dev
+  server mid-verification.
+
+Lint errors 13 → 8. `tsc` clean. Data intact throughout.
+
+**Still open:** rotating the Render, Supabase, and Vercel credentials — dashboard
+work. Rotation is what actually neutralizes the exposure; the purge only stops it
+spreading.
+
 ## Backlog
 
 Roughly in priority order:
