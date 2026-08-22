@@ -95,7 +95,9 @@ export default function Navigation() {
           <Button variant="ghost" size="sm" className="relative group">
             <span className="absolute inset-0 w-0 bg-primary/10 group-hover:w-full transition-all duration-300 rounded-md" />
             <AlertCircle className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-            <span className="relative font-heading font-medium">Complaints</span>
+            <span className="relative font-heading font-medium">
+              Complaints
+            </span>
           </Button>
         </Link>
       )}
@@ -205,7 +207,9 @@ export default function Navigation() {
     <>
       {/* Main Section */}
       <div className="px-2 py-1">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Main</p>
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+          Main
+        </p>
       </div>
       <Link href="/" onClick={() => setOpen(false)}>
         <Button variant="ghost" size="sm" className="w-full justify-start h-9">
@@ -236,16 +240,26 @@ export default function Navigation() {
       {user.apartmentId && user.role !== "guard" && (
         <>
           <div className="px-2 py-1 mt-2">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Resident</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              Resident
+            </p>
           </div>
           <Link href="/visitors" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <UserCheck className="mr-2 h-4 w-4" />
               <span className="text-sm">My Visitors</span>
             </Button>
           </Link>
           <Link href="/complaints" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <AlertCircle className="mr-2 h-4 w-4" />
               <span className="text-sm">Complaints</span>
             </Button>
@@ -257,10 +271,16 @@ export default function Navigation() {
       {(user.role === "guard" || user.role === "admin" || user.isAdmin) && (
         <>
           <div className="px-2 py-1 mt-2">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Security</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              Security
+            </p>
           </div>
           <Link href="/guard-dashboard" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <Shield className="mr-2 h-4 w-4" />
               <span className="text-sm">Guard Dashboard</span>
             </Button>
@@ -272,46 +292,76 @@ export default function Navigation() {
       {user.isAdmin && (
         <>
           <div className="px-2 py-1 mt-2">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Admin</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              Admin
+            </p>
           </div>
           <Link href="/users" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <Users className="mr-2 h-4 w-4" />
               <span className="text-sm">Users</span>
             </Button>
           </Link>
           <Link href="/manage-properties" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <Settings className="mr-2 h-4 w-4" />
               <span className="text-sm">Properties</span>
             </Button>
           </Link>
           <Link href="/bookings" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <Calendar className="mr-2 h-4 w-4" />
               <span className="text-sm">Bookings</span>
             </Button>
           </Link>
           <Link href="/admin/complaints" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <AlertCircle className="mr-2 h-4 w-4" />
               <span className="text-sm">Complaints</span>
             </Button>
           </Link>
           <Link href="/manage-amenities" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <CalendarDays className="mr-2 h-4 w-4" />
               <span className="text-sm">Amenities</span>
             </Button>
           </Link>
           <Link href="/reports" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <BarChart3 className="mr-2 h-4 w-4" />
               <span className="text-sm">Reports</span>
             </Button>
           </Link>
           <Link href="/storage-management" onClick={() => setOpen(false)}>
-            <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-9"
+            >
               <HardDrive className="mr-2 h-4 w-4" />
               <span className="text-sm">Storage</span>
             </Button>
@@ -321,7 +371,9 @@ export default function Navigation() {
 
       {/* Account Section */}
       <div className="px-2 py-1 mt-2">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Account</p>
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+          Account
+        </p>
       </div>
       <Link href="/profile" onClick={() => setOpen(false)}>
         <Button variant="ghost" size="sm" className="w-full justify-start h-9">
@@ -353,16 +405,19 @@ export default function Navigation() {
         className="hidden md:flex items-center justify-between px-6 h-16 bg-background border-b backdrop-blur-sm bg-background/80 fixed w-full top-0 z-50"
       >
         <motion.div
-          className="flex items-center gap-3 group cursor-pointer"
+          className="flex items-center gap-3 group cursor-pointer shrink-0"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Building2 className="h-6 w-6 text-primary transition-transform group-hover:rotate-12" />
-          <div className="flex flex-col">
-            <h1 className="font-display font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <Building2 className="h-6 w-6 text-primary transition-transform group-hover:rotate-12 shrink-0" />
+          <div className="flex flex-col leading-tight">
+            {/* whitespace-nowrap: Space Grotesk is wider than the system font
+                this was built against, so the brand wrapped to two lines and
+                overflowed the h-16 header. */}
+            <h1 className="font-display font-bold text-xl tracking-tight whitespace-nowrap bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Society Management
             </h1>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground font-sans font-medium tracking-wide">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-sans font-medium tracking-wide whitespace-nowrap">
               {user.profilePicture ? (
                 <Avatar className="h-5 w-5">
                   <AvatarImage src={user.profilePicture} alt={user.name} />
@@ -373,7 +428,9 @@ export default function Navigation() {
               ) : null}
               <span>
                 Welcome back,{" "}
-                <span className="font-semibold text-primary/90">{user.name}</span>
+                <span className="font-semibold text-primary/90">
+                  {user.name}
+                </span>
               </span>
             </div>
           </div>
@@ -387,7 +444,11 @@ export default function Navigation() {
       {/* Mobile Navigation */}
       <header className="md:hidden flex items-center justify-between h-14 bg-background/95 backdrop-blur-md border-b px-3 fixed w-full top-0 z-50 shadow-sm">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <motion.div whileHover={{ rotate: 12 }} whileTap={{ scale: 0.9 }} className="flex-shrink-0">
+          <motion.div
+            whileHover={{ rotate: 12 }}
+            whileTap={{ scale: 0.9 }}
+            className="flex-shrink-0"
+          >
             {user.profilePicture ? (
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user.profilePicture} alt={user.name} />
@@ -404,7 +465,10 @@ export default function Navigation() {
               Society Management
             </h1>
             <span className="text-[10px] text-muted-foreground font-sans font-medium tracking-wide truncate">
-              Hi, <span className="font-semibold text-primary/90">{user.name.split(' ')[0]}</span>
+              Hi,{" "}
+              <span className="font-semibold text-primary/90">
+                {user.name.split(" ")[0]}
+              </span>
             </span>
           </div>
         </div>
@@ -412,7 +476,11 @@ export default function Navigation() {
           <NotificationBell />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 relative group">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 relative group"
+              >
                 <span className="absolute inset-0 w-0 bg-primary/10 group-hover:w-full transition-all duration-300 rounded-md" />
                 <Menu className="h-5 w-5 transition-transform group-hover:scale-110" />
               </Button>
@@ -424,7 +492,10 @@ export default function Navigation() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       {user.profilePicture ? (
-                        <AvatarImage src={user.profilePicture} alt={user.name} />
+                        <AvatarImage
+                          src={user.profilePicture}
+                          alt={user.name}
+                        />
                       ) : null}
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {user.name.charAt(0).toUpperCase()}
@@ -432,7 +503,9 @@ export default function Navigation() {
                     </Avatar>
                     <div className="min-w-0">
                       <p className="font-semibold truncate">{user.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        @{user.username}
+                      </p>
                     </div>
                   </div>
                 </div>
