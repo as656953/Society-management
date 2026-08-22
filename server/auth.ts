@@ -37,11 +37,16 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
+      // Passport does not catch rejections from an async verify callback, so an
+      // unhandled throw here (e.g. a database timeout) takes down the process.
+      try {
+        const user = await storage.getUserByUsername(username);
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false);
+        }
         return done(null, user);
+      } catch (err) {
+        return done(err as Error);
       }
     })
   );
@@ -53,7 +58,8 @@ export function setupAuth(app: Express) {
         {
           clientID: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback",
+          callbackURL:
+            process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback",
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
@@ -104,7 +110,9 @@ export function setupAuth(app: Express) {
     );
     console.log("Google OAuth strategy initialized");
   } else {
-    console.log("Google OAuth credentials not configured - Google login disabled");
+    console.log(
+      "Google OAuth credentials not configured - Google login disabled"
+    );
   }
 
   passport.serializeUser((user, done) => done(null, user.id));
@@ -158,13 +166,17 @@ export function setupAuth(app: Express) {
   });
 
   // Google OAuth routes
-  app.get("/api/auth/google", passport.authenticate("google", {
-    scope: ["profile", "email"]
-  }));
-
-  app.get("/api/auth/google/callback",
+  app.get(
+    "/api/auth/google",
     passport.authenticate("google", {
-      failureRedirect: "/auth?error=google_auth_failed"
+      scope: ["profile", "email"],
+    })
+  );
+
+  app.get(
+    "/api/auth/google/callback",
+    passport.authenticate("google", {
+      failureRedirect: "/auth?error=google_auth_failed",
     }),
     (req, res) => {
       // Successful authentication, redirect to dashboard
@@ -175,7 +187,9 @@ export function setupAuth(app: Express) {
   // Check if Google OAuth is enabled
   app.get("/api/auth/google/status", (req, res) => {
     res.json({
-      enabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+      enabled: !!(
+        process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ),
     });
   });
 }

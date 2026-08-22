@@ -60,7 +60,7 @@ function getMemoryStore() {
 }
 
 // Use memory store in production (serverless) to avoid connection pool issues
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === "production";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -73,7 +73,11 @@ export interface IStorage {
   deleteUser(id: number): Promise<void>;
 
   // User-Apartment Assignment
-  assignApartment(userId: number, apartmentId: number, residentType: "OWNER" | "TENANT"): Promise<User>;
+  assignApartment(
+    userId: number,
+    apartmentId: number,
+    residentType: "OWNER" | "TENANT"
+  ): Promise<User>;
   removeApartmentAssignment(userId: number): Promise<User>;
   getUsersByApartment(apartmentId: number): Promise<User[]>;
   getUsersWithoutApartment(): Promise<User[]>;
@@ -125,11 +129,18 @@ export interface IStorage {
   getTodayVisitors(): Promise<Visitor[]>;
 
   // Pre-approved Visitors
-  createPreApprovedVisitor(visitor: InsertPreApprovedVisitor): Promise<PreApprovedVisitor>;
+  createPreApprovedVisitor(
+    visitor: InsertPreApprovedVisitor
+  ): Promise<PreApprovedVisitor>;
   getPreApprovedVisitor(id: number): Promise<PreApprovedVisitor | undefined>;
-  getPreApprovedVisitorsByApartment(apartmentId: number): Promise<PreApprovedVisitor[]>;
+  getPreApprovedVisitorsByApartment(
+    apartmentId: number
+  ): Promise<PreApprovedVisitor[]>;
   getPendingPreApprovedVisitors(): Promise<PreApprovedVisitor[]>;
-  updatePreApprovedVisitorStatus(id: number, status: string): Promise<PreApprovedVisitor>;
+  updatePreApprovedVisitorStatus(
+    id: number,
+    status: string
+  ): Promise<PreApprovedVisitor>;
   cancelPreApprovedVisitor(id: number): Promise<void>;
   expireOldPreApprovals(): Promise<PreApprovedVisitor[]>;
 
@@ -142,8 +153,13 @@ export interface IStorage {
   updateComplaint(id: number, data: Partial<Complaint>): Promise<Complaint>;
 
   // Complaint Comments
-  createComplaintComment(comment: InsertComplaintComment): Promise<ComplaintComment>;
-  getComplaintComments(complaintId: number, includeInternal: boolean): Promise<ComplaintComment[]>;
+  createComplaintComment(
+    comment: InsertComplaintComment
+  ): Promise<ComplaintComment>;
+  getComplaintComments(
+    complaintId: number,
+    includeInternal: boolean
+  ): Promise<ComplaintComment[]>;
 
   // Vehicles
   createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
@@ -163,9 +179,16 @@ export interface IStorage {
   deleteOldNotifications(daysOld: number): Promise<void>;
 
   // Notification Preferences
-  getNotificationPreferences(userId: number): Promise<NotificationPreferences | undefined>;
-  createNotificationPreferences(userId: number): Promise<NotificationPreferences>;
-  updateNotificationPreferences(userId: number, data: UpdateNotificationPreferences): Promise<NotificationPreferences>;
+  getNotificationPreferences(
+    userId: number
+  ): Promise<NotificationPreferences | undefined>;
+  createNotificationPreferences(
+    userId: number
+  ): Promise<NotificationPreferences>;
+  updateNotificationPreferences(
+    userId: number,
+    data: UpdateNotificationPreferences
+  ): Promise<NotificationPreferences>;
   shouldSendNotification(userId: number, type: string): Promise<boolean>;
 
   sessionStore: session.Store;
@@ -180,7 +203,9 @@ export class DatabaseStorage implements IStorage {
       const MemStore = getMemoryStore();
       const PgStore = getPostgresSessionStore();
 
-      this._sessionStore = isProduction
+      // The factories above are typed `any`, so assigning straight to the
+      // `Store | null` property would not narrow it. Go through a typed local.
+      const store: session.Store = isProduction
         ? new MemStore({
             checkPeriod: 86400000, // prune expired entries every 24h
           })
@@ -188,6 +213,9 @@ export class DatabaseStorage implements IStorage {
             pool: pool!,
             createTableIfMissing: true,
           });
+
+      this._sessionStore = store;
+      return store;
     }
     return this._sessionStore;
   }
@@ -214,10 +242,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email));
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
   }
 
@@ -227,7 +252,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // User-Apartment Assignment Methods
-  async assignApartment(userId: number, apartmentId: number, residentType: "OWNER" | "TENANT"): Promise<User> {
+  async assignApartment(
+    userId: number,
+    apartmentId: number,
+    residentType: "OWNER" | "TENANT"
+  ): Promise<User> {
     const [user] = await db
       .update(users)
       .set({ apartmentId, residentType })
@@ -253,10 +282,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUsersWithoutApartment(): Promise<User[]> {
-    return await db
-      .select()
-      .from(users)
-      .where(isNull(users.apartmentId));
+    return await db.select().from(users).where(isNull(users.apartmentId));
   }
 
   async getTower(id: number): Promise<Tower | undefined> {
@@ -424,10 +450,7 @@ export class DatabaseStorage implements IStorage {
 
   async getNotices(): Promise<Notice[]> {
     // Only return non-archived notices
-    return await db
-      .select()
-      .from(notices)
-      .where(eq(notices.isArchived, false));
+    return await db.select().from(notices).where(eq(notices.isArchived, false));
   }
 
   async getActiveNotices(): Promise<Notice[]> {
@@ -439,15 +462,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notices.isArchived, false));
 
     // Filter out expired notices
-    return allNotices.filter(n => !n.expiresAt || new Date(n.expiresAt) > now);
+    return allNotices.filter(
+      (n) => !n.expiresAt || new Date(n.expiresAt) > now
+    );
   }
 
   async getArchivedNotices(): Promise<Notice[]> {
     // Return only archived notices for admin viewing
-    return await db
-      .select()
-      .from(notices)
-      .where(eq(notices.isArchived, true));
+    return await db.select().from(notices).where(eq(notices.isArchived, true));
   }
 
   async deleteNotice(id: number): Promise<void> {
@@ -476,7 +498,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getVisitor(id: number): Promise<Visitor | undefined> {
-    const [visitor] = await db.select().from(visitors).where(eq(visitors.id, id));
+    const [visitor] = await db
+      .select()
+      .from(visitors)
+      .where(eq(visitors.id, id));
     return visitor;
   }
 
@@ -489,10 +514,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllVisitors(): Promise<Visitor[]> {
-    return await db
-      .select()
-      .from(visitors)
-      .orderBy(desc(visitors.entryTime));
+    return await db.select().from(visitors).orderBy(desc(visitors.entryTime));
   }
 
   async getVisitorsByApartment(apartmentId: number): Promise<Visitor[]> {
@@ -538,21 +560,25 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(visitors)
       .where(
-        and(
-          gte(visitors.entryTime, today),
-          lt(visitors.entryTime, tomorrow)
-        )
+        and(gte(visitors.entryTime, today), lt(visitors.entryTime, tomorrow))
       )
       .orderBy(desc(visitors.entryTime));
   }
 
   // Pre-approved Visitor Methods
-  async createPreApprovedVisitor(visitor: InsertPreApprovedVisitor): Promise<PreApprovedVisitor> {
-    const [newVisitor] = await db.insert(preApprovedVisitors).values(visitor).returning();
+  async createPreApprovedVisitor(
+    visitor: InsertPreApprovedVisitor
+  ): Promise<PreApprovedVisitor> {
+    const [newVisitor] = await db
+      .insert(preApprovedVisitors)
+      .values(visitor)
+      .returning();
     return newVisitor;
   }
 
-  async getPreApprovedVisitor(id: number): Promise<PreApprovedVisitor | undefined> {
+  async getPreApprovedVisitor(
+    id: number
+  ): Promise<PreApprovedVisitor | undefined> {
     const [visitor] = await db
       .select()
       .from(preApprovedVisitors)
@@ -560,7 +586,9 @@ export class DatabaseStorage implements IStorage {
     return visitor;
   }
 
-  async getPreApprovedVisitorsByApartment(apartmentId: number): Promise<PreApprovedVisitor[]> {
+  async getPreApprovedVisitorsByApartment(
+    apartmentId: number
+  ): Promise<PreApprovedVisitor[]> {
     return await db
       .select()
       .from(preApprovedVisitors)
@@ -584,7 +612,10 @@ export class DatabaseStorage implements IStorage {
       .orderBy(preApprovedVisitors.expectedDate);
   }
 
-  async updatePreApprovedVisitorStatus(id: number, status: string): Promise<PreApprovedVisitor> {
+  async updatePreApprovedVisitorStatus(
+    id: number,
+    status: string
+  ): Promise<PreApprovedVisitor> {
     const [visitor] = await db
       .update(preApprovedVisitors)
       .set({ status })
@@ -633,7 +664,10 @@ export class DatabaseStorage implements IStorage {
 
   // Complaint Methods
   async createComplaint(complaint: InsertComplaint): Promise<Complaint> {
-    const [newComplaint] = await db.insert(complaints).values(complaint).returning();
+    const [newComplaint] = await db
+      .insert(complaints)
+      .values(complaint)
+      .returning();
     return newComplaint;
   }
 
@@ -668,7 +702,10 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(complaints.createdAt));
   }
 
-  async updateComplaint(id: number, data: Partial<Complaint>): Promise<Complaint> {
+  async updateComplaint(
+    id: number,
+    data: Partial<Complaint>
+  ): Promise<Complaint> {
     const updateData = {
       ...data,
       updatedAt: new Date(),
@@ -688,12 +725,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Complaint Comment Methods
-  async createComplaintComment(comment: InsertComplaintComment): Promise<ComplaintComment> {
-    const [newComment] = await db.insert(complaintComments).values(comment).returning();
+  async createComplaintComment(
+    comment: InsertComplaintComment
+  ): Promise<ComplaintComment> {
+    const [newComment] = await db
+      .insert(complaintComments)
+      .values(comment)
+      .returning();
     return newComment;
   }
 
-  async getComplaintComments(complaintId: number, includeInternal: boolean): Promise<ComplaintComment[]> {
+  async getComplaintComments(
+    complaintId: number,
+    includeInternal: boolean
+  ): Promise<ComplaintComment[]> {
     if (includeInternal) {
       return await db
         .select()
@@ -737,10 +782,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllVehicles(): Promise<Vehicle[]> {
-    return await db
-      .select()
-      .from(vehicles)
-      .orderBy(desc(vehicles.createdAt));
+    return await db.select().from(vehicles).orderBy(desc(vehicles.createdAt));
   }
 
   async updateVehicle(id: number, data: Partial<Vehicle>): Promise<Vehicle> {
@@ -757,8 +799,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Notification Methods
-  async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [newNotification] = await db.insert(notifications).values(notification).returning();
+  async createNotification(
+    notification: InsertNotification
+  ): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning();
     return newNotification;
   }
 
@@ -776,10 +823,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(notifications)
       .where(
-        and(
-          eq(notifications.userId, userId),
-          eq(notifications.isRead, false)
-        )
+        and(eq(notifications.userId, userId), eq(notifications.isRead, false))
       );
     return result.length;
   }
@@ -813,7 +857,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Notification Preferences Methods
-  async getNotificationPreferences(userId: number): Promise<NotificationPreferences | undefined> {
+  async getNotificationPreferences(
+    userId: number
+  ): Promise<NotificationPreferences | undefined> {
     const [prefs] = await db
       .select()
       .from(notificationPreferences)
@@ -821,7 +867,9 @@ export class DatabaseStorage implements IStorage {
     return prefs;
   }
 
-  async createNotificationPreferences(userId: number): Promise<NotificationPreferences> {
+  async createNotificationPreferences(
+    userId: number
+  ): Promise<NotificationPreferences> {
     const [prefs] = await db
       .insert(notificationPreferences)
       .values({ userId })
@@ -829,7 +877,10 @@ export class DatabaseStorage implements IStorage {
     return prefs;
   }
 
-  async updateNotificationPreferences(userId: number, data: UpdateNotificationPreferences): Promise<NotificationPreferences> {
+  async updateNotificationPreferences(
+    userId: number,
+    data: UpdateNotificationPreferences
+  ): Promise<NotificationPreferences> {
     // First, ensure preferences exist (create if not)
     let prefs = await this.getNotificationPreferences(userId);
     if (!prefs) {
