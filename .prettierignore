@@ -1,0 +1,10 @@
+node_modules
+dist
+api-dist
+migrations
+attached_assets
+imgs
+package-lock.json
+*.md
+client/src/components/ui
+db/*.sql
