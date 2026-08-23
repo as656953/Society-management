@@ -35,7 +35,7 @@ import {
   towers,
   type Tower,
 } from "../shared/schema.js";
-import { db, pool } from "./db.js";
+import { db, getSessionPool } from "./db.js";
 import { eq, and, lt, isNull, isNotNull, desc, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -210,7 +210,9 @@ export class DatabaseStorage implements IStorage {
             checkPeriod: 86400000, // prune expired entries every 24h
           })
         : new PgStore({
-            pool: pool!,
+            // Its own pool, not the app's. Sharing meant every request spent
+            // an app connection on the session lookup before the handler ran.
+            pool: getSessionPool(),
             createTableIfMissing: true,
           });
 

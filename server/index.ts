@@ -126,6 +126,22 @@ async function startServer() {
   }
 }
 
+// Last-resort safety net.
+//
+// Many route handlers are `async` with no try/catch, so a rejected promise
+// inside one becomes an unhandled rejection. Node's default is to terminate,
+// which means a single transient database error takes the whole server down
+// and every other user's request with it. Logging and staying up is strictly
+// better: the failing request still 500s via Express, and the process
+// survives. Removing the need for this by wrapping the handlers is tracked in
+// MEMORY.md.
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+});
+
 // Start server
 startServer();
 
