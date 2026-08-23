@@ -1,113 +1,49 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.js";
+import { createApp } from "./app.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { setupScheduledTasks } from "./tasks.js";
-import towersRouter from "./routes/towers.js";
-import apartmentsRouter from "./routes/apartments.js";
-import noticesRouter from "./routes/notices.js";
-import session from "express-session";
 import { storage } from "./storage.js";
-import { setupAuth } from "./auth.js";
 import { pool } from "./db.js";
 
-const app = express();
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Session middleware setup
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "your-secret-key", // In production, use an environment variable
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true,
-      path: "/",
-    },
-    store: storage.sessionStore,
-    name: "ssync.sid", // Custom name to avoid conflicts
-  })
-);
-
-// Setup authentication after session middleware
-setupAuth(app);
-
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
+// Last-resort safety net.
+//
+// Many route handlers are `async` with no try/catch, so a rejected promise
+// inside one becomes an unhandled rejection. Node's default is to terminate,
+// which means a single transient database error takes the whole server down and
+// every other user's request with it. Logging and staying up is strictly
+// better. Removing the need for this by wrapping the handlers is tracked in
+// MEMORY.md.
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
 });
 
-app.use("/api/towers", towersRouter);
-app.use("/api/apartments", apartmentsRouter);
-app.use("/api/notices", noticesRouter);
-
-// Initialize and start server
 async function startServer() {
-  const server = await registerRoutes(app);
-
-  // Only run scheduled tasks if not in serverless environment
-  if (process.env.VERCEL !== "1") {
-    await setupScheduledTasks();
-  }
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+  const { app, server } = await createApp({
+    sessionStore: storage.sessionStore,
+    log,
+    // The catch-all has to sit after the API routes and before the error
+    // handler, so the factory mounts it for us at the right point.
+    afterRoutes: async (a, s) => {
+      if (a.get("env") === "development") {
+        await setupVite(a, s);
+      } else {
+        serveStatic(a);
+      }
+    },
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // Only start server if not in Vercel environment
   if (process.env.VERCEL !== "1") {
+    await setupScheduledTasks();
+
     const port = process.env.PORT || 3000;
     server.listen(port, () => {
       log(`Server running on port ${port}`);
     });
 
-    // Close the Postgres pool on shutdown. Without this every restart leaks its
-    // connections: they sit `idle` on the server until it times them out, and a
-    // pooled provider will start refusing new ones long before that. Symptom is
-    // "timeout exceeded when trying to connect" on requests that were fine
-    // moments earlier.
+    // Close the Postgres pool on shutdown so restarts do not abandon their
+    // connections to the pooler.
     let shuttingDown = false;
     const shutdown = async (signal: string) => {
       if (shuttingDown) return;
@@ -124,26 +60,14 @@ async function startServer() {
     process.on("SIGINT", () => void shutdown("SIGINT"));
     process.on("SIGTERM", () => void shutdown("SIGTERM"));
   }
+
+  return app;
 }
 
-// Last-resort safety net.
-//
-// Many route handlers are `async` with no try/catch, so a rejected promise
-// inside one becomes an unhandled rejection. Node's default is to terminate,
-// which means a single transient database error takes the whole server down
-// and every other user's request with it. Logging and staying up is strictly
-// better: the failing request still 500s via Express, and the process
-// survives. Removing the need for this by wrapping the handlers is tracked in
-// MEMORY.md.
-process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled promise rejection:", reason);
+// Startup failures are fatal, unlike the runtime rejections handled above:
+// a server that cannot build its app is not worth keeping alive, and staying
+// up would mask a misconfiguration behind a stream of 500s.
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught exception:", err);
-});
-
-// Start server
-startServer();
-
-// Export for Vercel serverless
-export default app;
