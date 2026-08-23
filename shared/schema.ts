@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   numeric,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -25,7 +26,12 @@ export const users = pgTable("users", {
   googleId: text("google_id").unique(),
   profilePicture: text("profile_picture"),
   authProvider: text("auth_provider").default("local").notNull(), // 'local' or 'google'
-});
+},
+  (t) => ({
+    authProviderIdx: index("idx_users_auth_provider").on(t.authProvider),
+    emailIdx: index("idx_users_email").on(t.email),
+    googleIdIdx: index("idx_users_google_id").on(t.googleId),
+  }));
 
 export const towers = pgTable("towers", {
   id: serial("id").primaryKey(),
@@ -79,7 +85,10 @@ export const notices = pgTable("notices", {
   priority: text("priority").notNull().default("NORMAL"), // "HIGH", "NORMAL", "LOW"
   expiresAt: timestamp("expires_at"),
   isArchived: boolean("is_archived").default(false).notNull(),
-});
+},
+  (t) => ({
+    isArchivedIdx: index("idx_notices_is_archived").on(t.isArchived),
+  }));
 
 // Visitor entry/exit logs
 export const visitors = pgTable("visitors", {
@@ -96,7 +105,12 @@ export const visitors = pgTable("visitors", {
   createdBy: integer("created_by").notNull(), // Guard who logged the entry
   notes: text("notes"),
   preApprovedVisitorId: integer("pre_approved_visitor_id"), // Link to pre-approval if visitor was pre-approved
-});
+},
+  (t) => ({
+    apartmentIdIdx: index("idx_visitors_apartment_id").on(t.apartmentId),
+    entryTimeIdx: index("idx_visitors_entry_time").on(t.entryTime),
+    statusIdx: index("idx_visitors_status").on(t.status),
+  }));
 
 // Pre-approved visitors by residents
 export const preApprovedVisitors = pgTable("pre_approved_visitors", {
@@ -113,7 +127,12 @@ export const preApprovedVisitors = pgTable("pre_approved_visitors", {
   createdBy: integer("created_by").notNull(), // Resident who created the pre-approval
   createdAt: timestamp("created_at").defaultNow().notNull(),
   notes: text("notes"),
-});
+},
+  (t) => ({
+    apartmentIdIdx: index("idx_pre_approved_apartment_id").on(t.apartmentId),
+    expectedDateIdx: index("idx_pre_approved_expected_date").on(t.expectedDate),
+    statusIdx: index("idx_pre_approved_status").on(t.status),
+  }));
 
 // Complaints table
 export const complaints = pgTable("complaints", {
@@ -130,7 +149,13 @@ export const complaints = pgTable("complaints", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   resolvedAt: timestamp("resolved_at"),
   resolutionNotes: text("resolution_notes"),
-});
+},
+  (t) => ({
+    apartmentIdIdx: index("idx_complaints_apartment_id").on(t.apartmentId),
+    createdAtIdx: index("idx_complaints_created_at").on(t.createdAt),
+    createdByIdx: index("idx_complaints_created_by").on(t.createdBy),
+    statusIdx: index("idx_complaints_status").on(t.status),
+  }));
 
 // Complaint comments/updates
 export const complaintComments = pgTable("complaint_comments", {
@@ -140,7 +165,10 @@ export const complaintComments = pgTable("complaint_comments", {
   comment: text("comment").notNull(),
   isInternal: boolean("is_internal").default(false).notNull(), // Internal notes visible only to admin
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+},
+  (t) => ({
+    complaintIdIdx: index("idx_complaint_comments_complaint_id").on(t.complaintId),
+  }));
 
 // Vehicles table
 export const vehicles = pgTable("vehicles", {
@@ -154,7 +182,11 @@ export const vehicles = pgTable("vehicles", {
   isPrimary: boolean("is_primary").default(false).notNull(),
   registeredBy: integer("registered_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+},
+  (t) => ({
+    apartmentIdIdx: index("idx_vehicles_apartment_id").on(t.apartmentId),
+    vehicleNumberIdx: index("idx_vehicles_vehicle_number").on(t.vehicleNumber),
+  }));
 
 // Notifications table
 export const notifications = pgTable("notifications", {
@@ -166,7 +198,12 @@ export const notifications = pgTable("notifications", {
   link: text("link"), // URL to navigate to when clicked
   isRead: boolean("is_read").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+},
+  (t) => ({
+    createdAtIdx: index("idx_notifications_created_at").on(t.createdAt.desc()),
+    isReadIdx: index("idx_notifications_is_read").on(t.isRead),
+    userIdIdx: index("idx_notifications_user_id").on(t.userId),
+  }));
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const updateUserSchema = z.object({
@@ -336,7 +373,10 @@ export const notificationPreferences = pgTable("notification_preferences", {
   emailEmergencyNotifications: boolean("email_emergency_notifications").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+},
+  (t) => ({
+    userIdIdx: index("idx_notification_preferences_user_id").on(t.userId),
+  }));
 
 export const updateNotificationPreferencesSchema = z.object({
   bookingNotifications: z.boolean().optional(),

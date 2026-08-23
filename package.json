@@ -15,7 +15,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:migrate": "dotenv drizzle-kit migrate"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
