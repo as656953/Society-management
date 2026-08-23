@@ -59,16 +59,19 @@ degrade without the optional ones. The two you must set:
 ### Run
 
 ```bash
+npm run db:migrate   # build the schema
+npm run db:seed      # fill it with demo data and print the logins
 npm run dev
 ```
 
 API and Vite dev client on <http://localhost:3000>.
 
-> **Creating the schema and a first admin is not yet automated.** A seed script is
-> the next planned piece of work. Until then, apply
-> `migrations/0000_nice_red_skull.sql` to an empty database, register through the UI,
-> and set `role = 'admin'` and `is_admin = true` on your row directly. See
-> [CLAUDE.md](CLAUDE.md) for why `db:push` is currently unsafe.
+`db:seed` creates three towers, eighteen apartments, three amenities and one
+account per role, then prints the credentials. It refuses to run against a
+database that already contains users, so it cannot overwrite real data.
+
+> `npm run db:push` is unsafe on an existing database and is kept only for
+> reference. Use `db:migrate`. See [CLAUDE.md](CLAUDE.md).
 
 ## Commands
 
@@ -80,6 +83,8 @@ API and Vite dev client on <http://localhost:3000>.
 | `npm run check` | TypeScript type check |
 | `npm run lint` | ESLint |
 | `npm run format` | Prettier |
+| `npm run db:migrate` | Apply migrations |
+| `npm run db:seed` | Seed demo data (refuses if users exist) |
 
 ## Project structure
 
@@ -132,9 +137,8 @@ progress. Full findings and the remediation plan live in [MEMORY.md](MEMORY.md).
 ## Contributing
 
 Read [CLAUDE.md](CLAUDE.md) first — it documents the non-obvious traps, most
-importantly the `.js` extension rule above and why `npm run db:push` is currently
-unsafe (the migration journal has diverged from the live schema, which carries 26
-indexes declared in neither).
+importantly the `.js` extension rule above and why `db:migrate` rather than
+`db:push` is the supported way to change the schema.
 
 [MEMORY.md](MEMORY.md) tracks project state, past decisions, and the backlog.
 

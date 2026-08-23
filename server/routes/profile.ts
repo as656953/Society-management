@@ -1,24 +1,8 @@
 import { Express } from "express";
 import { storage } from "../storage.js";
+import { hashPassword, comparePasswords } from "../crypto.js";
 import { updateProfileSchema, changePasswordSchema, insertVehicleSchema, updateVehicleSchema } from "../../shared/schema.js";
 import { ZodError } from "zod";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
-async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
-}
 
 export function registerProfileRoutes(app: Express) {
   // Get current user profile

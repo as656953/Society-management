@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:push": "drizzle-kit push",
-    "db:migrate": "dotenv drizzle-kit migrate"
+    "db:migrate": "dotenv drizzle-kit migrate",
+    "db:seed": "dotenv tsx scripts/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

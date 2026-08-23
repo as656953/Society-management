@@ -55,13 +55,26 @@ relative, with the `.js` extension, even though the file is `.ts`. Vercel's ESM
 resolution breaks otherwise. This was fixed across two commits (`773be2c`,
 `e720a63`); don't regress it.
 
-### 2. Never run `npm run db:push`
+### 2. Use `db:migrate`, not `db:push`
 
-`migrations/meta/_journal.json` tracks only `0000`. Migrations `0003`–`0019`
-were applied by hand and are invisible to drizzle-kit. Its model of the schema
-has diverged from the live database, so `push` may propose destructive changes
-against real data. Verify schema by inspection (or the Supabase MCP) and write
-SQL migrations by hand until the history is reconciled.
+`npm run db:migrate` applies the journaled migrations. `db:push` diffs the schema
+and applies the result directly; it is kept only for reference.
+
+This used to be an outright prohibition. The live database carried 26 indexes
+that were created by hand and declared in neither `shared/schema.ts` nor any
+journaled migration, so `push` would have proposed dropping all of them. Those
+indexes are now declared, `drizzle-kit generate` reports an empty diff, and the
+17 unjournaled `0003`-`0019` files have moved to `migrations/legacy/` as history.
+
+Two things to know before touching migrations:
+
+- `0000_nice_red_skull.sql` is a consolidated snapshot using plain `CREATE TABLE`,
+  not `IF NOT EXISTS`. It is safe on an empty database and will fail on a
+  populated one. The live database is already baselined in
+  `drizzle.__drizzle_migrations` as being at `0001`, so `db:migrate` is a no-op
+  there rather than an error.
+- The one foreign key (`notices.created_by`) is written as `"public"."users"`, so
+  the migrations only reproduce correctly into the `public` schema.
 
 ### 3. Two competing notions of "admin"
 
