@@ -8,6 +8,7 @@ import noticesRouter from "./routes/notices.js";
 import session from "express-session";
 import { storage } from "./storage.js";
 import { setupAuth } from "./auth.js";
+import { pool } from "./db.js";
 
 const app = express();
 
@@ -101,6 +102,27 @@ async function startServer() {
     server.listen(port, () => {
       log(`Server running on port ${port}`);
     });
+
+    // Close the Postgres pool on shutdown. Without this every restart leaks its
+    // connections: they sit `idle` on the server until it times them out, and a
+    // pooled provider will start refusing new ones long before that. Symptom is
+    // "timeout exceeded when trying to connect" on requests that were fine
+    // moments earlier.
+    let shuttingDown = false;
+    const shutdown = async (signal: string) => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      log(`${signal} received, shutting down`);
+      server.close();
+      try {
+        await pool.end();
+      } catch (err) {
+        console.error("Error closing the database pool:", err);
+      }
+      process.exit(0);
+    };
+    process.on("SIGINT", () => void shutdown("SIGINT"));
+    process.on("SIGTERM", () => void shutdown("SIGTERM"));
   }
 }
 

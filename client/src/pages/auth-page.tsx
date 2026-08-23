@@ -118,7 +118,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex">
+    <div className="min-h-screen bg-background flex">
       <div className="w-full md:w-1/2 flex items-center justify-center p-4">
         <motion.div
           initial="hidden"
@@ -127,9 +127,9 @@ export default function AuthPage() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-white/20">
+          <div className="bg-card text-card-foreground rounded-2xl p-8 shadow-sm border">
             <motion.h1
-              className="text-3xl font-bold text-white text-center mb-8"
+              className="font-display text-3xl font-bold text-center mb-8"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -148,7 +148,8 @@ export default function AuthPage() {
                 <Button
                   type="button"
                   onClick={handleGoogleLogin}
-                  className="w-full bg-white hover:bg-gray-100 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-3"
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-3"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path
@@ -173,10 +174,10 @@ export default function AuthPage() {
 
                 <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/20"></div>
+                    <div className="w-full border-t"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-transparent text-gray-400">
+                    <span className="px-4 bg-card text-muted-foreground">
                       or continue with username
                     </span>
                   </div>
@@ -193,16 +194,17 @@ export default function AuthPage() {
                     exit={{ opacity: 0, height: 0 }}
                     className="space-y-2"
                   >
-                    <label className="text-sm font-medium text-gray-200">
+                    <label htmlFor="name" className="text-sm font-medium">
                       Full Name
                     </label>
                     <div className="relative">
                       <Input
+                        id="name"
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
                         required
-                        className="bg-white/5 border-white/10 text-white pr-10 placeholder:text-gray-400 focus:border-blue-500 transition-colors"
+                        className="pr-10"
                         placeholder="Enter your full name"
                       />
                       {formData.name && (
@@ -224,16 +226,17 @@ export default function AuthPage() {
               </AnimatePresence>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-200">
+                <label htmlFor="username" className="text-sm font-medium">
                   Username
                 </label>
                 <div className="relative">
                   <Input
+                    id="username"
                     name="username"
                     value={formData.username}
                     onChange={handleInputChange}
                     required
-                    className="bg-white/5 border-white/10 text-white pr-10 placeholder:text-gray-400 focus:border-blue-500 transition-colors"
+                    className="pr-10"
                     placeholder="Enter your username"
                   />
                   {formData.username && (
@@ -253,23 +256,26 @@ export default function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-200">
+                <label htmlFor="password" className="text-sm font-medium">
                   Password
                 </label>
                 <div className="relative">
                   <Input
+                    id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={handleInputChange}
                     required
-                    className="bg-white/5 border-white/10 text-white pr-10 placeholder:text-gray-400 focus:border-blue-500 transition-colors"
+                    className="pr-10"
                     placeholder="Enter your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -301,7 +307,7 @@ export default function AuthPage() {
                         />
                       ))}
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted-foreground">
                       Password strength: {passwordStrength.text}
                     </p>
                   </motion.div>
@@ -310,12 +316,12 @@ export default function AuthPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <motion.div
-                    className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full"
+                    className="h-5 w-5 border-2 border-current/30 border-t-current rounded-full"
                     animate={{ rotate: 360 }}
                     transition={{
                       duration: 1,
@@ -337,7 +343,7 @@ export default function AuthPage() {
                   setIsLogin(!isLogin);
                   setFormData({ username: "", password: "", name: "" });
                 }}
-                className="text-sm text-gray-300 hover:text-white transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {isLogin
                   ? "Need an account? Sign up"
@@ -348,18 +354,18 @@ export default function AuthPage() {
         </motion.div>
       </div>
 
-      <div className="hidden md:flex w-1/2 bg-black/20 backdrop-blur-lg items-center justify-center p-8">
+      <div className="hidden md:flex w-1/2 bg-muted/40 border-l items-center justify-center p-8">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           className="text-center"
         >
-          <Building2 className="w-24 h-24 mx-auto mb-6 text-white/80" />
-          <h2 className="text-4xl font-bold text-white mb-4">
+          <Building2 className="w-16 h-16 mx-auto mb-5 text-primary" />
+          <h2 className="font-display text-2xl font-semibold mb-3">
             Society Management System
           </h2>
-          <p className="text-lg text-gray-300 max-w-md mx-auto">
+          <p className="text-muted-foreground max-w-sm mx-auto">
             Access your society's amenities, manage bookings, and stay connected
             with your community.
           </p>
