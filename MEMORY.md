@@ -132,6 +132,38 @@ Lint errors 13 → 8. `tsc` clean. Data intact throughout.
 work. Rotation is what actually neutralizes the exposure; the purge only stops it
 spreading.
 
+## 2026-08-23 — Phase 1 continued
+
+- Removed all Replit scaffolding and dead weight; added LICENSE. Deleting the
+  shadcn-theme-json plugin also removed `theme.json`, resolving the primary-colour
+  conflict (both values were near-black, so no visible change; verified by
+  screenshot).
+- Reconciled the login page with the app's theme and associated its form labels.
+- Fixed the dashboard hierarchy and the false-empty bookings card.
+- Collapsed four page-heading treatments into one canonical style across twelve
+  pages, and added `client/src/components/page-header.tsx`.
+- README now leads with screenshots and carries an Engineering notes section.
+
+### Two more crashes found by using the app
+
+Both were the same class as the `deserializeUser` bug and neither was in the plan:
+
+- **`GET /api/amenities` (routes.ts:262) has no try/catch.** A rejected query became
+  an unhandled rejection and Node terminated the process. Added process-level
+  `unhandledRejection` / `uncaughtException` handlers as a **safety net only** —
+  the real fix is wrapping the handlers, see backlog.
+- **connect-pg-simple shared the application pool.** Every request spent an app
+  connection on the session lookup before its handler ran, so any concurrency
+  starved the pool and produced "timeout exceeded when trying to connect" on
+  requests that had worked moments earlier. The session store now has its own
+  pool (max 3). Verified with 60 concurrent authenticated requests, all 200.
+
+**Correction:** an earlier note here attributed those pool timeouts to connections
+leaked across dev-server restarts, based on idle entries in `pg_stat_activity`.
+That was wrong — those entries are the Supabase pooler's own persistent backends
+and look identical either way. The graceful-shutdown handler added for it is still
+correct practice, but it was not the cause.
+
 ## Backlog
 
 Roughly in priority order:
@@ -141,14 +173,16 @@ Roughly in priority order:
    shared serializer. Most severe open issue.
 2. Rotate the Supabase database password — it was shared in a chat transcript
    on 2026-08-22 — and rotate `SESSION_SECRET` in Vercel.
-3. Test suite (Vitest) + CI. Start with `server/auth.ts` and `server/storage.ts`.
-4. Fix the remaining auth bugs: `comparePasswords` length crash, ungated
+3. **Wrap the async route handlers.** The process-level rejection handler is a
+   net, not a fix; a handler that throws still returns nothing useful to the user.
+4. Test suite (Vitest) + CI. Start with `server/auth.ts` and `server/storage.ts`.
+5. Fix the remaining auth bugs: `comparePasswords` length crash, ungated
    `/guard-dashboard`, the `SESSION_SECRET` fallback.
-5. Unify `is_admin` and `role` into one authorization concept.
-6. Reconcile the drizzle migration journal with the 0003-0019 hand-applied SQL.
-7. Fix Vercel sessions (`memorystore` -> Postgres store) and redeploy.
-8. Address `npm audit` (54 vulnerabilities, 2 critical).
-9. Delete dead code: `server/api.ts`, `server/api-source/`, `api-dist/`,
+6. Unify `is_admin` and `role` into one authorization concept.
+7. Reconcile the drizzle migration journal with the 0003-0019 hand-applied SQL.
+8. Fix Vercel sessions (`memorystore` -> Postgres store) and redeploy.
+9. Address `npm audit` (54 vulnerabilities, 2 critical).
+10. Delete dead code: `server/api.ts`, `server/api-source/`, `api-dist/`,
    root `lib/utils.ts`.
 
 ## Reference docs
