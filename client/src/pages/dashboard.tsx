@@ -137,8 +137,8 @@ export default function Dashboard() {
         className="flex flex-col gap-3"
       >
         <div>
-          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            Welcome back, {user?.name?.split(' ')[0]}
+          <h1 className="font-display text-xl md:text-2xl font-semibold tracking-tight">
+            Welcome back, {user?.name?.split(" ")[0]}
           </h1>
           <p className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
             Here's what's happening in your society today
@@ -163,23 +163,30 @@ export default function Dashboard() {
 
       <div className="grid md:grid-cols-2 gap-4 md:gap-6">
         {/* Quick Stats */}
-        <motion.div variants={item} className="grid grid-cols-2 gap-3 md:gap-4">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        <motion.div
+          variants={item}
+          className="grid grid-cols-2 gap-3 md:gap-4 content-start"
+        >
+          <Card>
             <CardContent className="p-4 md:p-6">
-              <Bell className="h-6 w-6 md:h-8 md:w-8 mb-2 md:mb-4 opacity-75" />
-              <div className="text-xl md:text-2xl font-bold mb-0.5 md:mb-1">
+              <Bell className="h-5 w-5 mb-3 text-muted-foreground" />
+              <div className="font-display text-2xl md:text-3xl font-semibold tabular-nums">
                 {activeNotices.length}
               </div>
-              <div className="text-blue-100 text-xs md:text-sm">Active Notices</div>
+              <div className="text-muted-foreground text-xs md:text-sm mt-0.5">
+                Active Notices
+              </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <Card>
             <CardContent className="p-4 md:p-6">
-              <Clock className="h-6 w-6 md:h-8 md:w-8 mb-2 md:mb-4 opacity-75" />
-              <div className="text-xl md:text-2xl font-bold mb-0.5 md:mb-1">
+              <Clock className="h-5 w-5 mb-3 text-muted-foreground" />
+              <div className="font-display text-2xl md:text-3xl font-semibold tabular-nums">
                 {pendingBookings.length}
               </div>
-              <div className="text-purple-100 text-xs md:text-sm">Pending Bookings</div>
+              <div className="text-muted-foreground text-xs md:text-sm mt-0.5">
+                Pending Bookings
+              </div>
             </CardContent>
           </Card>
         </motion.div>
@@ -327,7 +334,7 @@ export default function Dashboard() {
             <CardContent className="p-4 md:p-6">
               <div className="space-y-3 md:space-y-4">
                 <Link href="/amenities">
-                  <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
+                  <Button className="w-full">
                     <Calendar className="mr-2 h-4 w-4" />
                     Book Amenity
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -358,7 +365,7 @@ export default function Dashboard() {
         <motion.div variants={item}>
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/50 p-4 md:p-6">
-              <CardTitle className="text-base md:text-lg">Recent Bookings</CardTitle>
+              <CardTitle className="text-base md:text-lg">Pending Bookings</CardTitle>
             </CardHeader>
             <CardContent className="p-4 md:p-6">
               {isLoadingBookings ? (
@@ -366,26 +373,15 @@ export default function Dashboard() {
                   <Skeleton className="h-20 w-full" />
                   <Skeleton className="h-20 w-full" />
                 </div>
-              ) : bookings && bookings.length > 0 ? (
+              ) : pendingBookings.length > 0 ? (
                 <ScrollArea className="h-[300px]">
                   <div className="space-y-4">
-                    {bookings
-                      .filter((booking) => booking.status === "PENDING")
-                      .map((booking) => (
+                    {pendingBookings.map((booking) => (
                         <div
                           key={booking.id}
                           className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                         >
-                          <div
-                            className={cn(
-                              "w-2 h-2 rounded-full",
-                              booking.status === "APPROVED"
-                                ? "bg-green-500"
-                                : booking.status === "PENDING"
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
-                            )}
-                          />
+                          <div className="w-2 h-2 rounded-full bg-yellow-500" />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">
                               {getAmenityName(booking.amenityId)}
@@ -395,16 +391,7 @@ export default function Dashboard() {
                               {format(new Date(booking.startTime), "p")}
                             </p>
                           </div>
-                          <div
-                            className={cn(
-                              "px-3 py-1 rounded-full text-sm font-medium",
-                              booking.status === "APPROVED"
-                                ? "bg-green-100 text-green-800"
-                                : booking.status === "PENDING"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            )}
-                          >
+                          <div className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
                             {booking.status}
                           </div>
                         </div>
@@ -414,9 +401,11 @@ export default function Dashboard() {
               ) : (
                 <div className="text-center py-8">
                   <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground">No bookings found</p>
+                  <p className="text-muted-foreground">
+                    No bookings awaiting approval
+                  </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Start by booking an amenity!
+                    Anything you book will show here until it is reviewed.
                   </p>
                 </div>
               )}
