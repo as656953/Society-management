@@ -203,7 +203,7 @@ export default function Reports() {
       {/* Header */}
       <motion.div variants={item}>
         <div>
-          <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+          <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight flex items-center gap-2 md:gap-3">
             <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-primary" />
             Reports & Analytics
           </h1>

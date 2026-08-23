@@ -298,7 +298,7 @@ export default function StorageManagement() {
       <motion.div variants={item}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+            <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight flex items-center gap-2 md:gap-3">
               <HardDrive className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               Storage Management
             </h1>

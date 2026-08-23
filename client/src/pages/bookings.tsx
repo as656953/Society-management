@@ -192,7 +192,7 @@ export default function Bookings() {
                 <Settings className="h-8 w-8 text-primary relative z-10" />
               </motion.div>
               <div className="relative">
-                <h1 className="text-4xl font-display font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary animate-gradient-x">
+                <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">
                   Manage Bookings
                 </h1>
                 <motion.div

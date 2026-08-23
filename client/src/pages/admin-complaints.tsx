@@ -504,7 +504,7 @@ export default function AdminComplaints() {
     >
       {/* Header */}
       <motion.div variants={item}>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-red-600 bg-clip-text text-transparent flex items-center gap-3">
+        <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight flex items-center gap-3">
           <AlertCircle className="h-10 w-10 text-red-500" />
           Complaint Management
         </h1>

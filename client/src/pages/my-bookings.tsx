@@ -182,7 +182,7 @@ export default function MyBookings() {
                 <Calendar className="h-6 w-6 text-primary" />
               </motion.div>
               <motion.h1
-                className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"
+                className="font-display text-2xl md:text-3xl font-semibold tracking-tight"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}

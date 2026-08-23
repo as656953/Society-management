@@ -23,7 +23,6 @@ import { Link } from "wouter";
 import { NoticeCard } from "@/components/NoticeCard";
 import { CreateNoticeDialog } from "@/components/CreateNoticeDialog";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";

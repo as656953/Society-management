@@ -352,7 +352,7 @@ export default function Complaints() {
         className="flex flex-col gap-3"
       >
         <div>
-          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-red-600 bg-clip-text text-transparent flex items-center gap-2 md:gap-3">
+          <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight flex items-center gap-2 md:gap-3">
             <AlertCircle className="h-7 w-7 md:h-10 md:w-10 text-red-500" />
             My Complaints
           </h1>

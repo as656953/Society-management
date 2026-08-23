@@ -219,7 +219,7 @@ export default function ManageAmenities() {
       {/* Header */}
       <motion.div variants={item} className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Manage Amenities</h1>
+          <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">Manage Amenities</h1>
           <p className="text-muted-foreground mt-1">
             Create, edit, and manage society amenities
           </p>
